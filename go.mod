@@ -1,4 +1,4 @@
-module sc2bot
+module github.com/NatoBoram/Sc2Bot
 
 go 1.24.0
 

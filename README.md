@@ -18,6 +18,19 @@ This bot is developed on Linux.
 
 You can now launch Battle.net as a non-Steam game and play StarCraft II.
 
+### Environment variables
+
+When `PROTON_PATH` is set, the bot will use Proton to launch the game. Otherwise, it will fallback to [`sl2`](github.com/aiseeq/s2l)'s defaults.
+
+Fill in the `.env.local` file. Here's an example:
+
+```sh
+PROTON_PATH="$HOME/.steam/root/steamapps/common/Proton - Experimental/proton"
+SC2PATH="$HOME/.steam/debian-installation/steamapps/compatdata/3430940832/pfx/drive_c/Program Files (x86)/StarCraft II"
+STEAM_COMPAT_CLIENT_INSTALL_PATH="$HOME/.steam/debian-installation"
+STEAM_COMPAT_DATA_PATH="$HOME/.steam/debian-installation/steamapps/compatdata/3430940832"
+```
+
 ### Maps
 
-Go to [Map Packs](https://github.com/Blizzard/s2client-proto?tab=readme-ov-file#map-packs), download all the maps and extract them in `$HOME$/.steam/debian-installation/steamapps/compatdata/3430940832/pfx/drive_c/Program Files (x86)/StarCraft II/Maps` using the password `iagreetotheeula`.
+Go to [Map Packs](https://github.com/Blizzard/s2client-proto?tab=readme-ov-file#map-packs), download all the maps and extract them in `$SC2PATH/Maps` using the password `iagreetotheeula`.
