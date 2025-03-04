@@ -27,6 +27,7 @@ func (b *Bot) Step() {
 	b.ParseData()
 
 	b.BuildWorker()
+	b.BuildSupplyDepot()
 
 	b.Cmds.Process(&b.Actions)
 	if len(b.Actions) > 0 {
