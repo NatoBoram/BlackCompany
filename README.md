@@ -1,5 +1,7 @@
 # Sc2Bot
 
+[![Go](https://github.com/NatoBoram/Sc2Bot/actions/workflows/go.yaml/badge.svg)](https://github.com/NatoBoram/Sc2Bot/actions/workflows/go.yaml)
+
 🚧 Starting a StarCraft II bot
 
 ## Dependencies

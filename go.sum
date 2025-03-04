@@ -2,6 +2,8 @@ bitbucket.org/aisee/minilog v0.0.0-20220817175917-66d4b24322ad h1:0zNEAUXwOIz4uX
 bitbucket.org/aisee/minilog v0.0.0-20220817175917-66d4b24322ad/go.mod h1:CnFigVfWO2n0yJUAD/rB+BsKjAHQuuxW+REqsN+kKls=
 github.com/aiseeq/s2l v0.0.0-20210823112249-9c133fcb6b25 h1:wlKyu3e97y2y7r4CL1BPCkrU6aDMFzXV7LU6zR++sP8=
 github.com/aiseeq/s2l v0.0.0-20210823112249-9c133fcb6b25/go.mod h1:FjyTuBUfXzdCl3M5zqOCwm8i7gHMwJLZiZgE8yEhCt0=
+github.com/beefsack/go-astar v0.0.0-20200827232313-4ecf9e304482 h1:p4g4uok3+r6Tg6fxXEQUAcMAX/WdK6WhkQW9s0jaT7k=
+github.com/beefsack/go-astar v0.0.0-20200827232313-4ecf9e304482/go.mod h1:Cu3t5VeqE8kXjUBeNXWQprfuaP5UCIc5ggGjgMx9KFc=
 github.com/gogo/protobuf v1.3.2 h1:Ov1cvc58UF3b5XjBnZv7+opcTcQFZebYjWzi34vdm4Q=
 github.com/gogo/protobuf v1.3.2/go.mod h1:P1XiOD3dCwIKUDQYPy72D8LYyHL2YPYrpS2s69NZV8Q=
 github.com/google/go-cmp v0.5.1 h1:JFrFEBb2xKufg6XkJsJr+WbKb4FQlURi5RUcBveYu9k=
