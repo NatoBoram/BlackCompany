@@ -12,7 +12,7 @@ func (b *Bot) BuildWorker() {
 	ccs := b.Units.My.OfType(terran.CommandCenter, terran.OrbitalCommand, terran.PlanetaryFortress)
 	workers := b.Units.My[terran.SCV]
 
-	// log worker count
+	log.Printf("Command center count: %d", len(ccs))
 	log.Printf("Worker count: %d", len(workers))
 
 	for _, cc := range ccs.Filter(scl.Ready, scl.Idle) {

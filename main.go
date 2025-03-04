@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math"
 
 	"github.com/aiseeq/s2l/lib/scl"
 	"github.com/aiseeq/s2l/protocol/api"
@@ -49,15 +50,19 @@ func launch(env *Env) (*client.GameConfig, error) {
 
 // runAgent creates a bot and runs it.
 func runAgent(c *client.Client) {
-	bot := &Bot{
-		scl.New(c, OnUnitCreated),
-		nil,
-	}
+	bot := &Bot{Bot: scl.New(c, OnUnitCreated)}
+	bot.FramesPerOrder = 16
+	bot.LastLoop = -math.MaxInt
 
+	stop := make(chan struct{})
+	bot.Init(stop)
+
+	bot.Observe()
 	for bot.Client.Status == api.Status_in_game {
 		bot.Step()
 
-		if _, err := bot.Client.Step(api.RequestStep{Count: uint32(3)}); err != nil {
+		step := api.RequestStep{Count: uint32(bot.FramesPerOrder)}
+		if _, err := bot.Client.Step(step); err != nil {
 			if err.Error() == "Not in a game" {
 				break
 			}
@@ -68,4 +73,6 @@ func runAgent(c *client.Client) {
 
 		bot.Observe()
 	}
+
+	stop <- struct{}{}
 }

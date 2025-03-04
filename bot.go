@@ -10,12 +10,21 @@ import (
 // Bot holds the state of the bot.
 type Bot struct {
 	*scl.Bot
-
-	observation *api.ResponseObservation
 }
 
 // Step is called at every step of the game. This is the main loop of the bot.
 func (b *Bot) Step() {
+	b.Loop = int(b.Obs.GameLoop)
+
+	// Skip repeated frames
+	if b.Loop < b.LastLoop+b.FramesPerOrder {
+		return
+	} else {
+		b.LastLoop = b.Loop
+	}
+
+	b.ParseData()
+
 	b.BuildWorker()
 }
 
@@ -25,12 +34,42 @@ func (b *Bot) Expand() {
 
 // Observe fetches the current observation from the game.
 func (b *Bot) Observe() {
-	obs, err := b.Client.Observation(api.RequestObservation{})
+	o, err := b.Client.Observation(api.RequestObservation{})
 	if err != nil {
 		log.Printf("Failed to observe: %v", err)
+		return
 	}
-	b.observation = obs
+
+	b.Obs = o.Observation
+	b.Chat = o.Chat
+	b.Result = o.PlayerResult
+	b.Errors = o.ActionErrors
 }
 
 func OnUnitCreated(unit *scl.Unit) {
+}
+
+func (b *Bot) ParseData() {
+	if b.Info == nil {
+		log.Printf("Info is nil")
+		return
+	}
+	if b.Obs == nil {
+		log.Printf("Observation is nil")
+		return
+	}
+	if b.Obs.RawData == nil {
+		log.Printf("RawData is nil")
+		return
+	}
+	if b.Obs.RawData.MapState == nil {
+		log.Printf("MapState is nil")
+		return
+	}
+
+	b.ParseObservation()
+	b.ParseUnits()
+	b.ParseOrders()
+	b.DetectEnemyRace()
+	b.FindClusters()
 }
