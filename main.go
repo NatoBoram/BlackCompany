@@ -34,7 +34,9 @@ func launch(env *Env) (*client.GameConfig, error) {
 			return nil, fmt.Errorf("failed to get StarCraft II paths: %w", err)
 		}
 
-		if err = launchProton(paths); err != nil {
+		flags := loadFlags()
+
+		if err = launchProton(paths, flags); err != nil {
 			return nil, fmt.Errorf("failed to launch StarCraft II using Proton: %w", err)
 		}
 

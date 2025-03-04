@@ -34,3 +34,9 @@ STEAM_COMPAT_DATA_PATH="$HOME/.steam/debian-installation/steamapps/compatdata/34
 ### Maps
 
 Go to [Map Packs](https://github.com/Blizzard/s2client-proto?tab=readme-ov-file#map-packs), download all the maps and extract them in `$SC2PATH/Maps` using the password `iagreetotheeula`.
+
+## Resources
+
+These resources massively helped me kickstart bot development.
+
+- [Guide to StarCraft II Proto API](https://levelup.gitconnected.com/guide-to-starcraft-ii-proto-api-264811da8a50)
