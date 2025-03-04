@@ -1,8 +1,6 @@
 package main
 
 import (
-	"log"
-
 	"github.com/aiseeq/s2l/lib/scl"
 	"github.com/aiseeq/s2l/protocol/enums/ability"
 	"github.com/aiseeq/s2l/protocol/enums/terran"
@@ -11,9 +9,6 @@ import (
 func (b *Bot) BuildWorker() {
 	ccs := b.Units.My.OfType(terran.CommandCenter, terran.OrbitalCommand, terran.PlanetaryFortress)
 	workers := b.Units.My[terran.SCV]
-
-	log.Printf("Command center count: %d", len(ccs))
-	log.Printf("Worker count: %d", len(workers))
 
 	for _, cc := range ccs.Filter(scl.Ready, scl.Idle) {
 		if !b.CanBuy(ability.Train_SCV) {

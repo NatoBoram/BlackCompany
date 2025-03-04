@@ -14,6 +14,7 @@ type Bot struct {
 
 // Step is called at every step of the game. This is the main loop of the bot.
 func (b *Bot) Step() {
+	b.Cmds = &scl.CommandsStack{}
 	b.Loop = int(b.Obs.GameLoop)
 
 	// Skip repeated frames
@@ -26,6 +27,17 @@ func (b *Bot) Step() {
 	b.ParseData()
 
 	b.BuildWorker()
+
+	b.Cmds.Process(&b.Actions)
+	if len(b.Actions) > 0 {
+		log.Printf("Loop %d, actions %d, %v", b.Loop, len(b.Actions), b.Actions)
+
+		if _, err := b.Client.Action(api.RequestAction{Actions: b.Actions}); err != nil {
+			log.Printf("Failed to send actions: %v", err)
+		}
+
+		b.Actions = nil
+	}
 }
 
 // Expand expands the bot's base whenever enough resources are available.
