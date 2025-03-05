@@ -31,7 +31,7 @@ func (b *Bot) Step() {
 
 	b.Cmds.Process(&b.Actions)
 	if len(b.Actions) > 0 {
-		log.Printf("Loop %d, actions %d, %v", b.Loop, len(b.Actions), b.Actions)
+		log.Printf("Loop %d, performing %d actions", b.Loop, len(b.Actions))
 
 		if _, err := b.Client.Action(api.RequestAction{Actions: b.Actions}); err != nil {
 			log.Printf("Failed to send actions: %v", err)
