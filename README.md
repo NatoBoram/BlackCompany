@@ -41,6 +41,7 @@ Go to [Map Packs](https://github.com/Blizzard/s2client-proto?tab=readme-ov-file#
 
 These resources massively helped me kickstart bot development.
 
+- [Install and play StarCraft II using Steam on Linux](https://www.youtube.com/watch?v=HqOEKSR_Eow)
 - [Guide to StarCraft II Proto API](https://levelup.gitconnected.com/guide-to-starcraft-ii-proto-api-264811da8a50)
 - [VeTerran](https://bitbucket.org/AiSee/VeTerran)
 - [s2l](https://pkg.go.dev/github.com/aiseeq/s2l)
