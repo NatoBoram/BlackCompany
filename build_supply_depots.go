@@ -40,28 +40,28 @@ func filterBuildSupplyDepotOrder(unit *scl.Unit) bool {
 }
 
 func (b *Bot) BuildSupplyDepot() {
-	// currSupply := b.Obs.PlayerCommon.FoodUsed
-	// maxSupply := b.Obs.PlayerCommon.FoodCap
-	// supplyLeft := maxSupply - currSupply
+	currSupply := b.Obs.PlayerCommon.FoodUsed
+	maxSupply := b.Obs.PlayerCommon.FoodCap
+	supplyLeft := maxSupply - currSupply
 
 	ccs := b.Units.My.OfType(terran.CommandCenter, terran.OrbitalCommand, terran.PlanetaryFortress)
 	if ccs.Empty() {
 		return
 	}
 
-	// // Kinda assume that all command centers are building SCVs at the same time
-	// // even though they're not, but that's just to estimate the production per
-	// // bases.
-	// timeForScv := float64(BuildTimeSCV) / float64(ccs.Len())
-	// scvDuringDepots := uint32(math.Ceil(float64(BuildTimeSupplyDepot) / timeForScv))
+	// Kinda assume that all command centers are building SCVs at the same time
+	// even though they're not, but that's just to estimate the production per
+	// bases.
+	timeForScv := float64(BuildTimeSCV) / float64(ccs.Len())
+	scvDuringDepots := uint32(math.Ceil(float64(BuildTimeSupplyDepot) / timeForScv))
 
-	// depotsOrdered := b.Units.My.OfType(terran.SCV).Filter(filterBuildSupplyDepotOrder).Len()
-	// depotsInProgress := b.Units.My.OfType(terran.SupplyDepot).Filter(filterInProgress).Len()
-	// shouldBuildDepot := maxSupply < 200 && supplyLeft <= scvDuringDepots && depotsOrdered+depotsInProgress == 0
+	depotsOrdered := b.Units.My.OfType(terran.SCV).Filter(filterBuildSupplyDepotOrder).Len()
+	depotsInProgress := b.Units.My.OfType(terran.SupplyDepot).Filter(filterInProgress).Len()
+	shouldBuildDepot := maxSupply < 200 && supplyLeft <= scvDuringDepots && depotsOrdered+depotsInProgress == 0
 
-	// if !shouldBuildDepot || !b.CanBuy(ability.Build_SupplyDepot) {
-	// 	return
-	// }
+	if !shouldBuildDepot || !b.CanBuy(ability.Build_SupplyDepot) {
+		return
+	}
 
 	workers := b.Units.My[terran.SCV].Filter(filterGatheringOrIdle)
 	if len(workers) == 0 {
@@ -101,36 +101,36 @@ func (b *Bot) whereToBuild(start point.Point, size scl.BuildingSize, buildingTyp
 
 	// Spiral search around the starting position
 	for dist := 1.0; dist <= maxDist; dist++ {
-		// Calculate top-left corner of the current ring
-		topLeft := startPos.Add(-dist, -dist)
+		// Top-left corner of the current ring
+		topLeft := startPos.Add(-dist, +dist)
 
-		// Top edge (left to right)
-		for x := 0.0; x < dist*2; x++ {
-			pos := topLeft.Add(x, 0)
+		// Top edge (left to right, x increasing)
+		for x := 0.0; x < 2*dist; x++ {
+			pos := topLeft.Add(+x, 0)
 			if b.isValidBuildPosition(pos, size, buildingType, ability) {
 				return &pos
 			}
 		}
 
-		// Right edge (top to bottom)
+		// Right edge (top to bottom, y decreasing)
 		for y := 0.0; y < dist*2; y++ {
-			pos := topLeft.Add(dist*2, y)
+			pos := topLeft.Add(2*dist, -y)
 			if b.isValidBuildPosition(pos, size, buildingType, ability) {
 				return &pos
 			}
 		}
 
-		// Bottom edge (right to left)
-		for x := dist * 2; x > 0; x-- {
-			pos := topLeft.Add(x, dist*2)
+		// Bottom edge (right to left, x decreasing)
+		for x := 0.0; x < 2*dist; x++ {
+			pos := topLeft.Add(dist*2-x, -dist*2)
 			if b.isValidBuildPosition(pos, size, buildingType, ability) {
 				return &pos
 			}
 		}
 
-		// Left edge (bottom to top)
-		for y := dist * 2; y > 0; y-- {
-			pos := topLeft.Add(0, y)
+		// Left edge (bottom to top, y increasing)
+		for y := 0.0; y < dist*2; y++ {
+			pos := topLeft.Add(0, -dist*2+y)
 			if b.isValidBuildPosition(pos, size, buildingType, ability) {
 				return &pos
 			}
