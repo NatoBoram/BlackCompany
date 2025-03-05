@@ -83,7 +83,14 @@ func (b *Bot) BuildSupplyDepot() {
 	}
 
 	log.Printf("Building supply depot at %v", *pos)
-	builder.CommandPosQueue(ability.Build_SupplyDepot, pos)
+	builder.CommandPos(ability.Build_SupplyDepot, pos)
+
+	// Then go back to mining afterwards
+	if mineralField := b.Units.Minerals.All().ClosestTo(cc); mineralField != nil {
+		log.Printf("and queuing to harvest at %v", mineralField.Point())
+		builder.CommandTagQueue(ability.Smart, mineralField.Tag)
+	}
+
 	b.DeductResources(ability.Build_SupplyDepot)
 }
 
