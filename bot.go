@@ -10,6 +10,8 @@ import (
 // Bot holds the state of the bot.
 type Bot struct {
 	*scl.Bot
+
+	miningInitialized bool
 }
 
 // Step is called at every step of the game. This is the main loop of the bot.
@@ -82,5 +84,16 @@ func (b *Bot) ParseData() {
 	b.ParseUnits()
 	b.ParseOrders()
 	b.DetectEnemyRace()
-	b.FindClusters()
+
+	if !b.miningInitialized {
+		townHalls := b.findTownHalls()
+		resources := b.findResourcesNearTownHalls(townHalls)
+		turrets := b.findTurretsNearResourcesNearTownHalls(resources)
+		b.InitMining(ToPoints(turrets))
+		b.miningInitialized = true
+	} else {
+		b.acknowledgeMiners()
+	}
+
+	b.FindClusters() // Not used yet
 }

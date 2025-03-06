@@ -1,3 +1,4 @@
+// Sc2Bot is a
 package main
 
 import (

@@ -1,6 +1,10 @@
 sc2path:
 	open "${SC2PATH}"
 
-realtime:
+slow:
 	clear
 	go run ./... -- -realtime true
+
+fast:
+	clear
+	go run ./... -- -realtime false

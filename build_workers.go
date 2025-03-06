@@ -1,76 +1,56 @@
 package main
 
 import (
+	"log"
+
 	"github.com/aiseeq/s2l/lib/scl"
 	"github.com/aiseeq/s2l/protocol/enums/ability"
-	"github.com/aiseeq/s2l/protocol/enums/terran"
 )
 
+// BuildWorker trains SCVs from command centers.
+//
+//   - When SCVs can be afforded and there's less than 80 of them
+//   - Find mineral fields that aren't depleted and count the missing SCVs to saturate them
+//   - Find vespene geysers that aren't exhausted and count the missing SCVs to saturate them
+//
+// For each town halls:
+//
+//   - Get the closest resource that's not saturated
+//   - Set the rally point to that resource
+//   - Train a SCV
 func (b *Bot) BuildWorker() {
-	ccs := b.Units.My.OfType(terran.CommandCenter, terran.OrbitalCommand, terran.PlanetaryFortress)
-	workers := b.Units.My[terran.SCV]
+	if !b.CanBuy(ability.Train_SCV) || b.findMiners().Len() >= 80 {
+		return
+	}
 
-	for _, cc := range ccs.Filter(scl.Ready, scl.Idle) {
+	townHalls := b.findTownHalls()
+	if townHalls.Empty() {
+		return
+	}
+
+	resources := b.findUnsaturatedResourcesNearTownHalls(townHalls)
+	if resources.Empty() {
+		return
+	}
+
+	idleTownHalls := townHalls.Filter(scl.Ready, scl.Idle)
+	if idleTownHalls.Empty() {
+		return
+	}
+
+	for _, cc := range idleTownHalls {
 		if !b.CanBuy(ability.Train_SCV) {
 			break
 		}
 
-		saturated := b.IsCCSaturated(cc)
-		if len(workers) < 80 && !saturated {
-			cc.Command(ability.Train_SCV)
-			b.DeductResources(ability.Train_SCV)
+		resource := resources.ClosestTo(cc)
+		if resource == nil {
+			break
 		}
+
+		log.Printf("Training SCV for resource %v", resource.Point())
+		cc.CommandTag(ability.Rally_CommandCenter, resource.Tag)
+		cc.CommandQueue(ability.Train_SCV)
+		b.DeductResources(ability.Train_SCV)
 	}
-}
-
-// IsMineralSaturated checks if the mineral fields near a command center are saturated with workers.
-func (b *Bot) IsMineralSaturated(cc *scl.Unit) bool {
-	// Mineral fields near the CC
-	mineralFields := b.Units.Minerals.All().CloserThan(scl.ResourceSpreadDistance, cc)
-	if mineralFields.Empty() {
-		return true
-	}
-
-	// Count miners assigned to this CC
-	minersAssigned := 0
-	for _, scv := range b.Units.My[terran.SCV] {
-		// Check if this SCV has the CC's tag as its assigned CC in the mining data
-		if b.Miners.CCForMiner[scv.Tag] == cc.Tag {
-			minersAssigned++
-		}
-	}
-
-	// Optimal saturation is 2 workers per mineral field, max is 3
-	optimalSaturation := mineralFields.Len() * 2
-	return minersAssigned >= optimalSaturation
-}
-
-// IsGasSaturated checks if the refineries near a command center are fully
-// saturated.
-func (b *Bot) IsGasSaturated(cc *scl.Unit) bool {
-	refineries := b.Units.My[terran.Refinery].CloserThan(scl.ResourceSpreadDistance, cc)
-	if refineries.Empty() {
-		return true
-	}
-
-	for _, refinery := range refineries {
-		if refinery.AssignedHarvesters < refinery.IdealHarvesters {
-			return false
-		}
-	}
-
-	return true
-}
-
-// IsCCSaturated checks if a command center is saturated with workers.
-func (b *Bot) IsCCSaturated(cc *scl.Unit) bool {
-	return b.IsMineralSaturated(cc) && b.IsGasSaturated(cc)
-}
-
-func getTownHalls(b *Bot) []*scl.Unit {
-	var cc []*scl.Unit
-	cc = append(cc, b.Units.My[terran.CommandCenter]...)
-	cc = append(cc, b.Units.My[terran.OrbitalCommand]...)
-	cc = append(cc, b.Units.My[terran.PlanetaryFortress]...)
-	return cc
 }
