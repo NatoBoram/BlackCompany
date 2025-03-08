@@ -1,6 +1,6 @@
-# Sc2Bot
+# BlackCompany
 
-[![Go](https://github.com/NatoBoram/Sc2Bot/actions/workflows/go.yaml/badge.svg)](https://github.com/NatoBoram/Sc2Bot/actions/workflows/go.yaml)
+[![Go](https://github.com/NatoBoram/BlackCompany/actions/workflows/go.yaml/badge.svg)](https://github.com/NatoBoram/BlackCompany/actions/workflows/go.yaml)
 
 🚧 Starting a StarCraft II bot
 

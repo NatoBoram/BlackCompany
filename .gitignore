@@ -1,8 +1,8 @@
 .env.local
 .env.*.local
 
-Sc2Bot
-Sc2Bot.exe
+BlackCompany
+BlackCompany.exe
 
 # Created by https://www.toptal.com/developers/gitignore/api/windows,linux,macos,go
 # Edit at https://www.toptal.com/developers/gitignore?templates=windows,linux,macos,go

@@ -3,7 +3,7 @@ package main_test
 import (
 	"testing"
 
-	main "github.com/NatoBoram/Sc2Bot"
+	main "github.com/NatoBoram/BlackCompany"
 )
 
 func TestParseArg_EmptyArgs(t *testing.T) {

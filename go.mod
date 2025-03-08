@@ -1,4 +1,4 @@
-module github.com/NatoBoram/Sc2Bot
+module github.com/NatoBoram/BlackCompany
 
 go 1.24.0
 
