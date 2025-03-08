@@ -1,0 +1,17 @@
+{
+	"extensions": {
+		"recommendations": ["golang.go"]
+	},
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"path": "../../../aiseeq/s2l"
+		},
+		{
+			"name": "VeTerran",
+			"path": "../../../../bitbucket.org/AiSee/veterran"
+		}
+	]
+}
