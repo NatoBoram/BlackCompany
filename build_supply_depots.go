@@ -19,7 +19,7 @@ func (b *Bot) BuildSupplyDepot() {
 	maxSupply := b.Obs.PlayerCommon.FoodCap
 	supplyLeft := maxSupply - currSupply
 
-	townHalls := b.findTownHalls()
+	townHalls := b.findTownHalls().Filter(IsCcAtExpansion(b.state.CcForExp))
 	if townHalls.Empty() {
 		return
 	}
@@ -30,9 +30,9 @@ func (b *Bot) BuildSupplyDepot() {
 	timeForScv := float64(BuildTimeSCV) / float64(townHalls.Len())
 	scvDuringDepots := uint32(math.Ceil(float64(BuildTimeSupplyDepot) / timeForScv))
 
-	depotsOrdered := b.findWorkers().Filter(IsOrderedTo(ability.Build_SupplyDepot)).Len()
-	depotsInProgress := b.Units.My.OfType(terran.SupplyDepot).Filter(IsInProgress).Len()
-	shouldBuildDepot := maxSupply < 200 && supplyLeft <= scvDuringDepots && depotsOrdered+depotsInProgress == 0
+	depotsOrdered := b.findWorkers().Filter(IsOrderedTo(ability.Build_SupplyDepot)).Len() >= 1
+	depotsInProgress := b.Units.My.OfType(terran.SupplyDepot).Filter(IsInProgress).Len() >= 1
+	shouldBuildDepot := maxSupply < 200 && supplyLeft <= scvDuringDepots && !depotsOrdered && !depotsInProgress
 
 	if !shouldBuildDepot {
 		return
@@ -55,7 +55,7 @@ func (b *Bot) BuildSupplyDepot() {
 		return
 	}
 
-	// Go back to the closest mineral field after building the supply depot
+	// Go back to the closest resource after building the supply depot
 	if resource := b.findResourcesNearTownHalls(townHalls).ClosestTo(pos); resource != nil {
 		log.Printf("Building supply depot at %v and queuing to gather at %v", *pos, resource.Point())
 

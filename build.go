@@ -109,7 +109,6 @@ func (b *Bot) isValidBuildPosition(pos point.Point, size scl.BuildingSize, build
 		// If the distance is equal or less than that + half the building size, it
 		// means we're between them.
 		if (resource.Dist(pos) + townHall.Dist(pos)) <= townHall.Dist(resource)+1 {
-			log.Printf("Position %v is between mineral field %v and town hall %v", pos, resource.Tag, townHall.Tag)
 			return false
 		}
 	}
@@ -143,12 +142,10 @@ func (b *Bot) isValidBuildPosition(pos point.Point, size scl.BuildingSize, build
 	touchingTypeCount := len(touchingTypes)
 
 	if !isTouchy && touchingTypeCount > 0 {
-		log.Printf("Position %v is touching %d different building types", pos, touchingTypeCount)
 		return false
 	}
 
 	if isTouchy && touchingTypeCount > 1 {
-		log.Printf("Position %v is touching %d different building types", pos, touchingTypeCount)
 		return false
 	}
 

@@ -5,6 +5,7 @@ import (
 	"log"
 	"math"
 
+	"github.com/aiseeq/s2l/lib/point"
 	"github.com/aiseeq/s2l/lib/scl"
 	"github.com/aiseeq/s2l/protocol/api"
 	"github.com/aiseeq/s2l/protocol/client"
@@ -50,7 +51,13 @@ func launch(env *Env) (*client.GameConfig, error) {
 
 // runAgent creates a bot and runs it.
 func runAgent(c *client.Client) {
-	bot := &Bot{Bot: scl.New(c, OnUnitCreated)}
+	bot := &Bot{
+		Bot: scl.New(c, OnUnitCreated),
+		state: BotState{
+			CcForExp: make(map[api.UnitTag]point.Point),
+		},
+	}
+
 	bot.FramesPerOrder = 16
 	bot.LastLoop = -math.MaxInt
 

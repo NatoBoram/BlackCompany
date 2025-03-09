@@ -1,8 +1,6 @@
 package main
 
 import (
-	"log"
-
 	"github.com/aiseeq/s2l/lib/scl"
 	"github.com/aiseeq/s2l/protocol/api"
 )
@@ -82,10 +80,10 @@ func (b *Bot) acknowledgeMiners() {
 		}
 	}
 
-	log.Printf(
-		"Miners: %d, CCForMiner: %d, GasForMiner: %d, MineralForMiner: %d",
-		miners.Len(), len(b.Miners.CCForMiner), len(b.Miners.GasForMiner), len(b.Miners.MineralForMiner),
-	)
+	// log.Printf(
+	// 	"Miners: %d, CCForMiner: %d, GasForMiner: %d, MineralForMiner: %d",
+	// 	miners.Len(), len(b.Miners.CCForMiner), len(b.Miners.GasForMiner), len(b.Miners.MineralForMiner),
+	// )
 }
 
 func (b *Bot) resetMinerAcknowledgements() {

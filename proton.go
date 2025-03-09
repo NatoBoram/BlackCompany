@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"os"
 	"os/exec"
 	"path"
 	"strconv"
@@ -52,8 +51,6 @@ func launchProton(paths *Sc2Paths, flags Flags) error {
 	cmd := exec.Command(paths.Proton, args...)
 
 	cmd.Dir = path.Join(paths.Sc2, "Support64")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
 
 	go func() {
 		if err := cmd.Run(); err != nil {
