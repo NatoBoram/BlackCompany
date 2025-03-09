@@ -53,12 +53,11 @@ func launch(env *Env) (*client.GameConfig, error) {
 func runAgent(c *client.Client) {
 	bot := &Bot{
 		Bot: scl.New(c, OnUnitCreated),
-		state: struct {
-			ccForExp map[api.UnitTag]point.Point
-		}{
-			ccForExp: make(map[api.UnitTag]point.Point),
+		state: BotState{
+			CcForExp: make(map[api.UnitTag]point.Point),
 		},
 	}
+
 	bot.FramesPerOrder = 16
 	bot.LastLoop = -math.MaxInt
 

@@ -3,6 +3,7 @@ package main
 import (
 	"math"
 
+	"github.com/aiseeq/s2l/lib/point"
 	"github.com/aiseeq/s2l/lib/scl"
 	"github.com/aiseeq/s2l/protocol/api"
 	"github.com/aiseeq/s2l/protocol/enums/ability"
@@ -300,5 +301,12 @@ func IsNotBuilding(u *scl.Unit) bool {
 func SameHeightAs(u *scl.Unit) scl.Filter {
 	return func(u2 *scl.Unit) bool {
 		return math.Abs(float64(u.Pos.Z-u2.Pos.Z)) < 1
+	}
+}
+
+func IsCcAtExpansion(ccForExp map[api.UnitTag]point.Point) scl.Filter {
+	return func(u *scl.Unit) bool {
+		expansion, ok := ccForExp[u.Tag]
+		return !ok || expansion.Dist(u) < 1
 	}
 }

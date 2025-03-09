@@ -24,22 +24,21 @@ func (b *Bot) Expand() {
 		}
 		expansion := expansions[i]
 
-		if b.state.ccForExp == nil {
-			b.state.ccForExp = make(map[api.UnitTag]point.Point)
+		if b.state.CcForExp == nil {
+			b.state.CcForExp = make(map[api.UnitTag]point.Point)
 		}
 
 		if !cc.IsFlying && cc.IsReady() {
 			log.Printf("Lifting Command Center from %s to expansion %s", cc.Point(), expansion)
-			cc.Command(ability.Cancel_Last)
 			cc.Command(ability.Lift_CommandCenter)
 
-			b.state.ccForExp[cc.Tag] = expansion
+			b.state.CcForExp[cc.Tag] = expansion
 		}
 
 		if cc.IsFlying && cc.IsIdle() {
 			cc.CommandPosQueue(ability.Land_CommandCenter, expansion)
 
-			b.state.ccForExp[cc.Tag] = expansion
+			b.state.CcForExp[cc.Tag] = expansion
 		}
 
 	}
@@ -60,8 +59,8 @@ func (b *Bot) Expand() {
 	}
 
 	nearestTownHall := b.findTownHalls().ClosestTo(worker)
-	midpoint := Midpoint(nearestTownHall.Point(), expansion)
-	location := b.whereToBuild(midpoint, scl.S5x5, terran.CommandCenter, ability.Build_CommandCenter)
+	towards := nearestTownHall.Point().Towards(expansion, scl.ResourceSpreadDistance)
+	location := b.whereToBuild(towards, scl.S5x5, terran.CommandCenter, ability.Build_CommandCenter)
 
 	// So do I build it there or near worker then fly it over?
 	if b.isFlyingFaster(worker, location, expansion) {

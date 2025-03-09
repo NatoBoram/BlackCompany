@@ -38,10 +38,7 @@ func (b *Bot) BuildWorker() {
 		return
 	}
 
-	idleTownHalls := townHalls.Filter(scl.Ready, scl.Idle, func(u *scl.Unit) bool {
-		_, ok := b.state.ccForExp[u.Tag]
-		return !ok
-	})
+	idleTownHalls := townHalls.Filter(scl.Ready, scl.Idle, IsCcAtExpansion(b.state.CcForExp))
 	if idleTownHalls.Empty() {
 		return
 	}

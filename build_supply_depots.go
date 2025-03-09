@@ -19,7 +19,7 @@ func (b *Bot) BuildSupplyDepot() {
 	maxSupply := b.Obs.PlayerCommon.FoodCap
 	supplyLeft := maxSupply - currSupply
 
-	townHalls := b.findTownHalls()
+	townHalls := b.findTownHalls().Filter(IsCcAtExpansion(b.state.CcForExp))
 	if townHalls.Empty() {
 		return
 	}

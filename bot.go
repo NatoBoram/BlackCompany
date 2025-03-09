@@ -14,9 +14,11 @@ type Bot struct {
 
 	miningInitialized bool
 
-	state struct {
-		ccForExp map[api.UnitTag]point.Point
-	}
+	state BotState
+}
+
+type BotState struct {
+	CcForExp map[api.UnitTag]point.Point
 }
 
 // Step is called at every step of the game. This is the main loop of the bot.
