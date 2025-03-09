@@ -54,17 +54,21 @@ func (b *Bot) findWorkers() scl.Units {
 	return b.Units.My.OfType(protoss.Probe, terran.SCV, zerg.Drone)
 }
 
-// findIdleOrGatheringWorkers finds idle or gathering workers.
+// findIdleOrGatheringWorkers finds idle or gathering workers that are not
+// currently building a structure.
 func (b *Bot) findIdleOrGatheringWorkers() scl.Units {
-	if idle := b.findWorkers().Filter(scl.Idle); !idle.Empty() {
+	workers := b.findWorkers().Filter(IsNotBuilding)
+
+	if idle := workers.Filter(scl.Idle); !idle.Empty() {
 		return idle
 	}
 
-	if returning := b.findWorkers().Filter(IsReturning); !returning.Empty() {
-		return returning
+	// If they're gathering, then it means they're not carrying resources
+	if gathering := workers.Filter(IsGathering); !gathering.Empty() {
+		return gathering
 	}
 
-	return b.findWorkers().Filter(IsGathering)
+	return workers.Filter(IsReturning)
 }
 
 // findTurretsNearResourcesNearTownHalls finds all missile turrets near mineral

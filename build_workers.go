@@ -7,6 +7,11 @@ import (
 	"github.com/aiseeq/s2l/protocol/enums/ability"
 )
 
+const (
+	// MaxWorkers is the maximum number of workers that can be trained.
+	MaxWorkers = 80
+)
+
 // BuildWorker trains SCVs from command centers.
 //
 //   - When SCVs can be afforded and there's less than 80 of them
@@ -19,7 +24,7 @@ import (
 //   - Set the rally point to that resource
 //   - Train a SCV
 func (b *Bot) BuildWorker() {
-	if !b.CanBuy(ability.Train_SCV) || b.findMiners().Len() >= 80 {
+	if !b.CanBuy(ability.Train_SCV) || b.findMiners().Len() >= MaxWorkers {
 		return
 	}
 
@@ -33,7 +38,10 @@ func (b *Bot) BuildWorker() {
 		return
 	}
 
-	idleTownHalls := townHalls.Filter(scl.Ready, scl.Idle)
+	idleTownHalls := townHalls.Filter(scl.Ready, scl.Idle, func(u *scl.Unit) bool {
+		_, ok := b.state.ccForExp[u.Tag]
+		return !ok
+	})
 	if idleTownHalls.Empty() {
 		return
 	}

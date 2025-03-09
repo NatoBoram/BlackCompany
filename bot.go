@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 
+	"github.com/aiseeq/s2l/lib/point"
 	"github.com/aiseeq/s2l/lib/scl"
 	"github.com/aiseeq/s2l/protocol/api"
 )
@@ -12,6 +13,10 @@ type Bot struct {
 	*scl.Bot
 
 	miningInitialized bool
+
+	state struct {
+		ccForExp map[api.UnitTag]point.Point
+	}
 }
 
 // Step is called at every step of the game. This is the main loop of the bot.
@@ -30,6 +35,7 @@ func (b *Bot) Step() {
 
 	b.BuildWorker()
 	b.BuildSupplyDepot()
+	b.Expand()
 
 	b.Cmds.Process(&b.Actions)
 	if len(b.Actions) > 0 {
@@ -39,10 +45,6 @@ func (b *Bot) Step() {
 
 		b.Actions = nil
 	}
-}
-
-// Expand expands the bot's base whenever enough resources are available.
-func (b *Bot) Expand() {
 }
 
 // Observe fetches the current observation from the game.

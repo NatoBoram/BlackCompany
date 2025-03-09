@@ -3,8 +3,8 @@ sc2path:
 
 slow:
 	clear
-	go run ./... -- -realtime true
+	go run ./... -- -realtime true -windowwidth 1920 -windowheight 1080
 
 fast:
 	clear
-	go run ./... -- -realtime false
+	go run ./... -- -realtime false -windowwidth 1280 -windowheight 720
