@@ -18,11 +18,11 @@ var Standard = Strategy{
 		buildingStep("Barracks", terran.Barracks, ability.Build_Barracks, 1, terran.SupplyDepot),
 		refineryStep(1),
 		orbitalCommandStep(1),
-		barracksAddonStep("Reactor", terran.BarracksReactor, ability.Build_Reactor_Barracks, 1),
+		addonStep("Barracks Reactor", terran.Barracks, terran.BarracksReactor, ability.Build_Reactor_Barracks, 1),
 		&TrainMarine,
 		buildingStep("Barracks", terran.Barracks, ability.Build_Barracks, 3, terran.SupplyDepot),
 		orbitalCommandStep(2),
-		barracksAddonStep("Tech Lab", terran.BarracksTechLab, ability.Build_TechLab_Barracks, 2),
+		addonStep("Barracks Tech Lab", terran.Barracks, terran.BarracksTechLab, ability.Build_TechLab_Barracks, 2),
 		upgradeStep("Combat Shield", ability.Research_CombatShield, terran.BarracksTechLab),
 		upgradeStep("Stimpack", ability.Research_Stimpack, terran.BarracksTechLab),
 		buildingStep("Factory", terran.Factory, ability.Build_Factory, 1, terran.BarracksTechLab),
@@ -32,6 +32,14 @@ var Standard = Strategy{
 		refineryStep(4),
 		buildingStep("Barracks", terran.Barracks, ability.Build_Barracks, 5, terran.SupplyDepot),
 		buildingStep("Starport", terran.Starport, ability.Build_Starport, 1, terran.Factory),
+		addonStep("Factory Tech Lab", terran.Factory, terran.FactoryTechLab, ability.Build_TechLab_Factory, 1), // Factory Reactor
+		addonStep("Barracks Reactor", terran.Barracks, terran.BarracksReactor, ability.Build_Reactor_Barracks, 3),
+		// Switch Starport and Factory
+		addonStep("Starport Reactor", terran.Starport, terran.StarportReactor, ability.Build_Reactor_Starport, 1), // Factory Tech Lab
+		// Medivac (x4)
+		// Siege Tank (x2)
+		upgradeStep("Infantry Armor Level 1", ability.Research_TerranInfantryArmorLevel1, terran.EngineeringBay),
+		// At this point, we should have enough units to launch a bigger attack.
 	},
 }
 
@@ -78,13 +86,11 @@ var SupplyDepotStep = BuildStep{
 		// Find a good position for the supply depot
 		pos := b.whereToBuild(randomTownHall.Point(), scl.S2x2, terran.SupplyDepot, ability.Build_SupplyDepot)
 		if pos == nil {
-			log.Printf("No valid position found for supply depot")
 			return
 		}
 
 		builder := b.findIdleOrGatheringWorkers().ClosestTo(pos)
 		if builder == nil {
-			log.Printf("No idle or gathering worker found to build supply depot")
 			return
 		}
 
@@ -134,7 +140,7 @@ func buildingStep(name string, buildingId api.UnitTypeID, abilityId api.AbilityI
 			inProgress := buildings.Filter(IsInProgress)
 			notStarted := ordered.Len() - inProgress.Len()
 			if buildings.Len()+notStarted >= quantity {
-				return true
+				return false
 			}
 
 			return true
@@ -203,7 +209,7 @@ func refineryStep(quantity int) *BuildStep {
 			inProgress := refineries.Filter(IsInProgress)
 			notStarted := ordered.Len() - inProgress.Len()
 			if refineries.Len()+notStarted >= quantity {
-				return false
+				return true
 			}
 
 			return false
@@ -236,9 +242,13 @@ func orbitalCommandStep(quantity int) *BuildStep {
 
 		Execute: func(b *Bot) {
 			if b.state.CcForOrbitalCommand == 0 {
-				// There's no command center marked for morphing into an orbital command,
-				// so let's mark one
-				commandCenters := b.Units.My.OfType(terran.CommandCenter)
+				// There's no command center marked for morphing into an orbital
+				// command, so let's mark one
+				commandCenters := b.Units.My.OfType(terran.CommandCenter).Filter(scl.Ready)
+				if commandCenters.Empty() {
+					return
+				}
+
 				randomCommandCenter := commandCenters[rand.Intn(len(commandCenters))]
 				b.state.CcForOrbitalCommand = randomCommandCenter.Tag
 			}
@@ -278,12 +288,12 @@ func orbitalCommandStep(quantity int) *BuildStep {
 	}
 }
 
-func barracksAddonStep(name string, addonId api.UnitTypeID, abilityId api.AbilityID, quantity int) *BuildStep {
+func addonStep(name string, buildingId api.UnitTypeID, addonId api.UnitTypeID, abilityId api.AbilityID, quantity int) *BuildStep {
 	return &BuildStep{
-		Name: "Barracks Addon",
+		Name: name,
 		Predicate: func(b *Bot) bool {
-			barracks := b.Units.My.OfType(terran.Barracks).Filter(scl.Ready, scl.Ground, scl.NoAddon)
-			if barracks.Empty() {
+			buildings := b.Units.My.OfType(buildingId).Filter(scl.Ready, scl.Ground, scl.NoAddon)
+			if buildings.Empty() {
 				return false
 			}
 
@@ -299,20 +309,20 @@ func barracksAddonStep(name string, addonId api.UnitTypeID, abilityId api.Abilit
 		},
 
 		Execute: func(b *Bot) {
-			barracks := b.Units.My.OfType(terran.Barracks).Filter(scl.Ready, scl.Ground, scl.NoAddon)
-			if barracks.Empty() {
+			buildings := b.Units.My.OfType(buildingId).Filter(scl.Ready, scl.Ground, scl.NoAddon)
+			if buildings.Empty() {
 				return
 			}
 
-			// If there's no barracks marked for add-on, mark one
+			// If there's no building marked for add-on, mark one
 			if b.state.BarracksForAddOn == 0 {
-				randomBarracks := barracks[rand.Intn(len(barracks))]
-				b.state.BarracksForAddOn = randomBarracks.Tag
+				randomBuilding := buildings[rand.Intn(len(buildings))]
+				b.state.BarracksForAddOn = randomBuilding.Tag
 			}
 
-			// Check if the marked barracks is still valid
+			// Check if the marked building is still valid
 			reserved := b.Units.ByTag[b.state.BarracksForAddOn]
-			if reserved == nil || reserved.AddOnTag != 0 {
+			if reserved == nil || !reserved.Is(buildingId) || reserved.AddOnTag != 0 {
 				b.state.BarracksForAddOn = 0
 				return
 			}
@@ -377,6 +387,10 @@ func (b *Bot) build(name string, buildingId api.UnitTypeID, abilityId api.Abilit
 	}
 
 	townHalls := b.findTownHalls()
+	if townHalls.Empty() {
+		return
+	}
+
 	randomTownHall := townHalls[rand.Intn(len(townHalls))]
 
 	pos := b.whereToBuild(randomTownHall.Point(), size, buildingId, abilityId)

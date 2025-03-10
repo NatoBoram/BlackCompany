@@ -45,7 +45,6 @@ func (b *Bot) Step() {
 	b.ParseData()
 
 	b.BuildWorker()
-	b.BuildSupplyDepot()
 	b.Expand()
 
 	b.ExecuteStrategy(&Standard)
