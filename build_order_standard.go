@@ -373,6 +373,27 @@ var TrainMarine = BuildStep{
 
 			barrack.Command(ability.Train_Marine)
 			b.DeductResources(ability.Train_Marine)
+
+			if barrack.AddOnTag == 0 {
+				continue
+			}
+
+			addon := b.Units.ByTag[barrack.AddOnTag]
+			if addon == nil {
+				continue
+			}
+
+			if !addon.Is(terran.BarracksReactor) {
+				continue
+			}
+
+			if !b.CanBuy(ability.Train_Marine) {
+				break
+			}
+
+			barrack.CommandQueue(ability.Train_Marine)
+			b.DeductResources(ability.Train_Marine)
+
 		}
 	},
 
