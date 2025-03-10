@@ -64,17 +64,14 @@ func (b *Bot) BuildWorker() {
 		var resource *scl.Unit
 
 		resourcesNearby := resources.CloserThan(scl.ResourceSpreadDistance, cc)
-		if resourcesNearby.Exists() {
-			gas := resourcesNearby.Filter(HasGas)
-			minerals := resourcesNearby.Filter(HasMinerals)
-
-			if (minerals.Len()*2)/(gas.Len()*3) > 16/6 {
-				resource = gas.ClosestTo(cc)
+		nearbyRefineries := resourcesNearby.Filter(HasGas)
+		nearbyMineralFields := resourcesNearby.Filter(HasMinerals)
+		if nearbyMineralFields.Exists() && nearbyRefineries.Exists() {
+			if (nearbyMineralFields.Len()*2)/(nearbyRefineries.Len()*3) >= 16/6 {
+				resource = nearbyRefineries.ClosestTo(cc)
 			} else {
-				resource = minerals.ClosestTo(cc)
+				resource = nearbyMineralFields.ClosestTo(cc)
 			}
-
-			continue
 		} else {
 			resource = resources.ClosestTo(cc)
 		}
