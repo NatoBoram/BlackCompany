@@ -315,15 +315,15 @@ func addonStep(name string, buildingId api.UnitTypeID, addonId api.UnitTypeID, a
 			}
 
 			// If there's no building marked for add-on, mark one
-			if b.state.BarracksForAddOn == 0 {
+			if b.state.BuildingForAddOn == 0 {
 				randomBuilding := buildings[rand.Intn(len(buildings))]
-				b.state.BarracksForAddOn = randomBuilding.Tag
+				b.state.BuildingForAddOn = randomBuilding.Tag
 			}
 
 			// Check if the marked building is still valid
-			reserved := b.Units.ByTag[b.state.BarracksForAddOn]
+			reserved := b.Units.ByTag[b.state.BuildingForAddOn]
 			if reserved == nil || !reserved.Is(buildingId) || reserved.AddOnTag != 0 {
-				b.state.BarracksForAddOn = 0
+				b.state.BuildingForAddOn = 0
 				return
 			}
 
@@ -337,7 +337,7 @@ func addonStep(name string, buildingId api.UnitTypeID, addonId api.UnitTypeID, a
 			log.Printf("Building %s at %v", name, reserved.Point())
 			reserved.Command(abilityId)
 			b.DeductResources(abilityId)
-			b.state.BarracksForAddOn = 0
+			b.state.BuildingForAddOn = 0
 		},
 
 		Next: func(b *Bot) bool {
@@ -361,7 +361,7 @@ var TrainMarine = BuildStep{
 	},
 
 	Execute: func(b *Bot) {
-		barracks := b.Units.My.OfType(terran.Barracks).Filter(scl.Ready, scl.Ground, scl.Idle)
+		barracks := b.Units.My.OfType(terran.Barracks).Filter(scl.Ready, scl.Ground, scl.Idle, IsNotTag(b.state.BuildingForAddOn))
 		if barracks.Empty() {
 			return
 		}

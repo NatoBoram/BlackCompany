@@ -310,3 +310,9 @@ func IsCcAtExpansion(ccForExp map[api.UnitTag]point.Point) scl.Filter {
 		return !ok || expansion.Dist(u) < 1
 	}
 }
+
+func IsNotTag(tag api.UnitTag) scl.Filter {
+	return func(u *scl.Unit) bool {
+		return u.Tag != tag
+	}
+}

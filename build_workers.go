@@ -61,16 +61,28 @@ func (b *Bot) BuildWorker() {
 			}
 		}
 
-		resource := resources.ClosestTo(cc)
-		if resource == nil {
-			break
+		var resource *scl.Unit
+
+		resourcesNearby := resources.CloserThan(scl.ResourceSpreadDistance, cc)
+		if resourcesNearby.Exists() {
+			gas := resourcesNearby.Filter(HasGas)
+			minerals := resourcesNearby.Filter(HasMinerals)
+
+			if (minerals.Len()*2)/(gas.Len()*3) > 16/6 {
+				resource = gas.ClosestTo(cc)
+			} else {
+				resource = minerals.ClosestTo(cc)
+			}
+
+			continue
+		} else {
+			resource = resources.ClosestTo(cc)
 		}
 
 		log.Printf("Training SCV for resource %v", resource.Point())
 		cc.CommandTag(ability.Rally_CommandCenter, resource.Tag)
 		cc.CommandQueue(ability.Train_SCV)
 		b.DeductResources(ability.Train_SCV)
-
 		resources.Remove(resource)
 	}
 }

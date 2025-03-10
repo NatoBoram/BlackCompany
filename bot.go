@@ -25,9 +25,9 @@ type BotState struct {
 	// to orbital commands.
 	CcForOrbitalCommand api.UnitTag
 
-	// BarracksForAddOn marks a barracks as reserved for building a reactor or
+	// BuildingForAddOn marks a barracks as reserved for building a reactor or
 	// tech lab.
-	BarracksForAddOn api.UnitTag
+	BuildingForAddOn api.UnitTag
 }
 
 // Step is called at every step of the game. This is the main loop of the bot.
