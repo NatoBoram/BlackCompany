@@ -59,7 +59,7 @@ func (b *Bot) Expand() {
 	}
 
 	nearestTownHall := b.findTownHalls().ClosestTo(worker)
-	towards := nearestTownHall.Point().Towards(expansion, scl.ResourceSpreadDistance)
+	towards := nearestTownHall.Point().Towards(expansion, nearestTownHall.SightRange())
 	location := b.whereToBuild(towards, scl.S5x5, terran.CommandCenter, ability.Build_CommandCenter)
 
 	// So do I build it there or near worker then fly it over?

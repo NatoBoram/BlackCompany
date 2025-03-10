@@ -18,7 +18,16 @@ type Bot struct {
 }
 
 type BotState struct {
+	// CcForExp marks command centers that are reserved for new expansions.
 	CcForExp map[api.UnitTag]point.Point
+
+	// CcForOrbitalCommand marks command centers that are reserved for upgrading
+	// to orbital commands.
+	CcForOrbitalCommand api.UnitTag
+
+	// BuildingForAddOn marks a barracks as reserved for building a reactor or
+	// tech lab.
+	BuildingForAddOn api.UnitTag
 }
 
 // Step is called at every step of the game. This is the main loop of the bot.
@@ -36,8 +45,9 @@ func (b *Bot) Step() {
 	b.ParseData()
 
 	b.BuildWorker()
-	b.BuildSupplyDepot()
 	b.Expand()
+
+	b.ExecuteStrategy(&Standard)
 
 	b.Cmds.Process(&b.Actions)
 	if len(b.Actions) > 0 {

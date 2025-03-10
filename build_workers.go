@@ -5,6 +5,7 @@ import (
 
 	"github.com/aiseeq/s2l/lib/scl"
 	"github.com/aiseeq/s2l/protocol/enums/ability"
+	"github.com/aiseeq/s2l/protocol/enums/terran"
 )
 
 const (
@@ -28,7 +29,9 @@ func (b *Bot) BuildWorker() {
 		return
 	}
 
-	townHalls := b.findTownHalls()
+	townHalls := b.Units.My.OfType(
+		terran.CommandCenter, terran.OrbitalCommand, terran.PlanetaryFortress,
+	)
 	if townHalls.Empty() {
 		return
 	}
@@ -44,18 +47,39 @@ func (b *Bot) BuildWorker() {
 	}
 
 	for _, cc := range idleTownHalls {
-		if !b.CanBuy(ability.Train_SCV) {
+		if !b.CanBuy(ability.Train_SCV) || resources.Empty() {
 			break
 		}
 
-		resource := resources.ClosestTo(cc)
-		if resource == nil {
-			break
+		// Ignore command centers that are reserved for morphing into an orbital
+		// command.
+		if b.state.CcForOrbitalCommand == cc.Tag {
+			if cc.Is(terran.OrbitalCommand, terran.OrbitalCommandFlying) {
+				b.state.CcForOrbitalCommand = 0
+			} else {
+				continue
+			}
+		}
+
+		var resource *scl.Unit
+
+		resourcesNearby := resources.CloserThan(scl.ResourceSpreadDistance, cc)
+		nearbyRefineries := resourcesNearby.Filter(HasGas)
+		nearbyMineralFields := resourcesNearby.Filter(HasMinerals)
+		if nearbyMineralFields.Exists() && nearbyRefineries.Exists() {
+			if (nearbyMineralFields.Len()*2)/(nearbyRefineries.Len()*3) >= 16/6 {
+				resource = nearbyRefineries.ClosestTo(cc)
+			} else {
+				resource = nearbyMineralFields.ClosestTo(cc)
+			}
+		} else {
+			resource = resources.ClosestTo(cc)
 		}
 
 		log.Printf("Training SCV for resource %v", resource.Point())
 		cc.CommandTag(ability.Rally_CommandCenter, resource.Tag)
 		cc.CommandQueue(ability.Train_SCV)
 		b.DeductResources(ability.Train_SCV)
+		resources.Remove(resource)
 	}
 }

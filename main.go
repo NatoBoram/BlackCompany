@@ -54,7 +54,8 @@ func runAgent(c *client.Client) {
 	bot := &Bot{
 		Bot: scl.New(c, OnUnitCreated),
 		state: BotState{
-			CcForExp: make(map[api.UnitTag]point.Point),
+			CcForExp:            make(map[api.UnitTag]point.Point),
+			CcForOrbitalCommand: 0,
 		},
 	}
 

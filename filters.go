@@ -106,7 +106,7 @@ func IsOrderedTo(ability api.AbilityID) scl.Filter {
 	}
 }
 
-func IsOrderedToAny(abilities []api.AbilityID) scl.Filter {
+func IsOrderedToAny(abilities ...api.AbilityID) scl.Filter {
 	return func(u *scl.Unit) bool {
 		if len(u.Orders) <= 0 {
 			return false
@@ -200,7 +200,7 @@ func IsGathering(u *scl.Unit) bool {
 	}
 
 	gathering := ToKeys[api.AbilityID](scl.GatheringAbilities)
-	return IsOrderedToAny(gathering)(u) || HasAnyTargetAbility(gathering)(u)
+	return IsOrderedToAny(gathering...)(u) || HasAnyTargetAbility(gathering)(u)
 }
 
 // IsReturning filters units that are returning resources
@@ -210,7 +210,7 @@ func IsReturning(u *scl.Unit) bool {
 	}
 
 	returning := ToKeys[api.AbilityID](scl.ReturningAbilities)
-	return IsOrderedToAny(returning)(u) || HasAnyTargetAbility(returning)(u)
+	return IsOrderedToAny(returning...)(u) || HasAnyTargetAbility(returning)(u)
 }
 
 func IsGatheringOrReturning(u *scl.Unit) bool {
@@ -225,7 +225,7 @@ func IsGatheringOrReturning(u *scl.Unit) bool {
 	abilities = append(abilities, gathering...)
 	abilities = append(abilities, returning...)
 
-	return IsOrderedToAny(abilities)(u) || HasAnyTargetAbility(abilities)(u)
+	return IsOrderedToAny(abilities...)(u) || HasAnyTargetAbility(abilities)(u)
 }
 
 // IsNotBuilding filters units that are not currently ordered to build a
@@ -295,7 +295,7 @@ func IsNotBuilding(u *scl.Unit) bool {
 		ability.Build_UltraliskCavern,
 	}
 
-	return !IsOrderedToAny(buildingAbilities)(u)
+	return !IsOrderedToAny(buildingAbilities...)(u)
 }
 
 func SameHeightAs(u *scl.Unit) scl.Filter {
@@ -308,5 +308,11 @@ func IsCcAtExpansion(ccForExp map[api.UnitTag]point.Point) scl.Filter {
 	return func(u *scl.Unit) bool {
 		expansion, ok := ccForExp[u.Tag]
 		return !ok || expansion.Dist(u) < 1
+	}
+}
+
+func IsNotTag(tag api.UnitTag) scl.Filter {
+	return func(u *scl.Unit) bool {
+		return u.Tag != tag
 	}
 }
