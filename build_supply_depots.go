@@ -39,7 +39,7 @@ func (b *Bot) BuildSupplyDepot() {
 	}
 
 	// From this point onward, it's relatively sure that we're going to build the
-	// supply depot unless we're actively losing.
+	// Supply depot unless we're actively losing.
 	randomTownHall := townHalls[rand.Intn(len(townHalls))]
 
 	// Find a good position for the supply depot

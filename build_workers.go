@@ -5,6 +5,7 @@ import (
 
 	"github.com/aiseeq/s2l/lib/scl"
 	"github.com/aiseeq/s2l/protocol/enums/ability"
+	"github.com/aiseeq/s2l/protocol/enums/terran"
 )
 
 const (
@@ -28,7 +29,9 @@ func (b *Bot) BuildWorker() {
 		return
 	}
 
-	townHalls := b.findTownHalls()
+	townHalls := b.Units.My.OfType(
+		terran.CommandCenter, terran.OrbitalCommand, terran.PlanetaryFortress,
+	)
 	if townHalls.Empty() {
 		return
 	}
@@ -44,8 +47,18 @@ func (b *Bot) BuildWorker() {
 	}
 
 	for _, cc := range idleTownHalls {
-		if !b.CanBuy(ability.Train_SCV) {
+		if !b.CanBuy(ability.Train_SCV) || resources.Empty() {
 			break
+		}
+
+		// Ignore command centers that are reserved for morphing into an orbital
+		// command.
+		if b.state.CcForOrbitalCommand == cc.Tag {
+			if cc.Is(terran.OrbitalCommand, terran.OrbitalCommandFlying) {
+				b.state.CcForOrbitalCommand = 0
+			} else {
+				continue
+			}
 		}
 
 		resource := resources.ClosestTo(cc)
@@ -57,5 +70,7 @@ func (b *Bot) BuildWorker() {
 		cc.CommandTag(ability.Rally_CommandCenter, resource.Tag)
 		cc.CommandQueue(ability.Train_SCV)
 		b.DeductResources(ability.Train_SCV)
+
+		resources.Remove(resource)
 	}
 }

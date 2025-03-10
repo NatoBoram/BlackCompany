@@ -35,6 +35,19 @@ func (b *Bot) findClaimedVespeneGeysersNearTownHalls(townHalls scl.Units) scl.Un
 	return refineries
 }
 
+// findVespeneGeysersNearTownHalls finds all vespene geysers near town halls.
+func (b *Bot) findVespeneGeysersNearTownHalls(townHalls scl.Units) scl.Units {
+	vespeneGeysers := make(scl.Units, 0, len(townHalls)*2)
+	for _, th := range townHalls {
+		ccGeysers := b.Units.Geysers.All().
+			CloserThan(th.SightRange(), th).Filter(HasGas)
+
+		vespeneGeysers = append(vespeneGeysers, ccGeysers...)
+	}
+
+	return vespeneGeysers
+}
+
 // findTownHalls finds all structures capable of training workers and miners.
 func (b *Bot) findTownHalls() scl.Units {
 	return b.Units.My.OfType(
