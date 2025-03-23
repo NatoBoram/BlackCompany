@@ -61,14 +61,15 @@ func launchProton(paths *Sc2Paths, flags Flags) error {
 	return nil
 }
 
-func protonConfig(bot *api.PlayerSetup, cpu *api.PlayerSetup) *client.GameConfig {
+func protonConfig(bot *api.PlayerSetup, participants ...*api.PlayerSetup) *client.GameConfig {
 	mapPath := random1v1Map()
 
 	log.Printf("Using map: %q\n", mapPath)
 
 	client.SetMap(mapPath)
 
-	config := client.NewGameConfig(bot, cpu)
+	participants = append([]*api.PlayerSetup{bot}, participants...)
+	config := client.NewGameConfig(participants...)
 	config.Connect(8168)
 	config.StartGame(mapPath)
 

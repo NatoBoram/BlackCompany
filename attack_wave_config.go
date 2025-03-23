@@ -47,7 +47,7 @@ func firstWaveConfig() *AttackWaveConfig {
 			b.state.AttackWaves = append(b.state.AttackWaves, wave)
 
 			launched = true
-			log.Printf("Sending %d marines", marines.Len())
+			log.Printf("Sending %d marines to enemy base %v", marines.Len(), b.Locs.EnemyStart)
 		},
 	}
 }

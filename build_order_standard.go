@@ -44,6 +44,7 @@ var Standard = Strategy{
 		// Siege Tank (x2)
 		upgradeStep("Infantry Armor Level 1", ability.Research_TerranInfantryArmorLevel1, terran.EngineeringBay),
 		// At this point, we should have enough units to launch a bigger attack.
+		attackWaveStep(firstWaveConfig()), // TODO: Update to a second wave
 	},
 }
 

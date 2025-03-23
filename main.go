@@ -29,7 +29,7 @@ func main() {
 // game in Proton or fallback to s2l's default behaviour.
 func launch(env *Env) (*client.GameConfig, error) {
 	bot := client.NewParticipant(api.Race_Terran, "BlackCompany")
-	cpu := client.NewComputer(api.Race_Random, api.Difficulty_Easy, api.AIBuild_RandomBuild)
+	cpu := client.NewComputer(api.Race_Random, api.Difficulty_Medium, api.AIBuild_RandomBuild)
 
 	if env.PROTON_PATH != "" && env.STEAM_COMPAT_DATA_PATH != "" {
 		paths, err := sc2Paths(env)
