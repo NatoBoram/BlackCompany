@@ -46,11 +46,15 @@ var Standard = Strategy{
 
 		// At this point, we should have enough units to launch a bigger attack.
 		// TODO: Update to a second wave
-		// These are just in the meantime
 		attackWaveStep(firstWaveConfig()),
+
+		// These are just in the meantime
+		buildingStep("Armory", terran.Armory, ability.Build_Armory, 1, terran.Factory),
+
 		upgradeStep("Infantry Weapons Level 2", ability.Research_TerranInfantryWeaponsLevel2, terran.EngineeringBay),
 		upgradeStep("Infantry Armor Level 2", ability.Research_TerranInfantryArmorLevel2, terran.EngineeringBay),
 		attackWaveStep(firstWaveConfig()),
+
 		upgradeStep("Infantry Weapons Level 3", ability.Research_TerranInfantryWeaponsLevel3, terran.EngineeringBay),
 		upgradeStep("Infantry Armor Level 3", ability.Research_TerranInfantryArmorLevel3, terran.EngineeringBay),
 		attackWaveStep(firstWaveConfig()),
@@ -423,7 +427,7 @@ func (b *Bot) amountTrainMarines(barracks *scl.Unit) int {
 }
 
 func (b *Bot) rallyPoint() *point.Point {
-	townHalls := b.findTownHalls()
+	townHalls := b.findTownHalls().Filter(IsCcAtExpansion(b.state.CcForExp))
 	if townHalls.Empty() {
 		return nil
 	}
@@ -438,7 +442,7 @@ func (b *Bot) build(name string, buildingId api.UnitTypeID, abilityId api.Abilit
 		return
 	}
 
-	townHalls := b.findTownHalls()
+	townHalls := b.findTownHalls().Filter(IsCcAtExpansion(b.state.CcForExp))
 	if townHalls.Empty() {
 		return
 	}
