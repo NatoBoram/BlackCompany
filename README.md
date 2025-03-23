@@ -47,3 +47,5 @@ These resources massively helped me kickstart bot development.
 - [Guide to StarCraft II Proto API](https://levelup.gitconnected.com/guide-to-starcraft-ii-proto-api-264811da8a50)
 - [VeTerran](https://bitbucket.org/AiSee/VeTerran)
 - [s2l](https://pkg.go.dev/github.com/aiseeq/s2l)
+- [liquipedia](https://liquipedia.net/starcraft2)
+- [StarCraft Wiki](https://starcraft.fandom.com)
