@@ -28,6 +28,9 @@ type BotState struct {
 	// BuildingForAddOn marks a barracks as reserved for building a reactor or
 	// tech lab.
 	BuildingForAddOn api.UnitTag
+
+	// AttackWaves holds the groups of units that are used for attacking.
+	AttackWaves []*AttackWave
 }
 
 // Step is called at every step of the game. This is the main loop of the bot.
@@ -48,6 +51,7 @@ func (b *Bot) Step() {
 	b.Expand()
 
 	b.ExecuteStrategy(&Standard)
+	b.AttackWaves()
 
 	b.Cmds.Process(&b.Actions)
 	if len(b.Actions) > 0 {

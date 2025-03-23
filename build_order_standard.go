@@ -19,6 +19,10 @@ var Standard = Strategy{
 		refineryStep(1),
 		orbitalCommandStep(1),
 		addonStep("Barracks Reactor", terran.Barracks, terran.BarracksReactor, ability.Build_Reactor_Barracks, 1),
+		// TODO: Turn Expand() into a step and insert it here. It is extremely funny
+		// to see it continuously create command centers at home and send them
+		// flying.
+		// buildingStep("Command Center", terran.CommandCenter, ability.Build_CommandCenter, 2),
 		&TrainMarine,
 		buildingStep("Barracks", terran.Barracks, ability.Build_Barracks, 3, terran.SupplyDepot),
 		orbitalCommandStep(2),
@@ -28,7 +32,7 @@ var Standard = Strategy{
 		buildingStep("Factory", terran.Factory, ability.Build_Factory, 1, terran.BarracksTechLab),
 		buildingStep("Engineering Bay", terran.EngineeringBay, ability.Build_EngineeringBay, 1, terran.SupplyDepot),
 		upgradeStep("Infantry Weapons Level 1", ability.Research_TerranInfantryWeaponsLevel1, terran.EngineeringBay),
-		// At this point, we should have enough marines to launch an attack
+		attackWaveStep(firstWaveConfig()),
 		refineryStep(4),
 		buildingStep("Barracks", terran.Barracks, ability.Build_Barracks, 5, terran.SupplyDepot),
 		buildingStep("Starport", terran.Starport, ability.Build_Starport, 1, terran.Factory),
@@ -43,6 +47,10 @@ var Standard = Strategy{
 	},
 }
 
+// SupplyDepotStep builds supply depots.
+//
+// TODO: Continuously make one supply depot after the other. Don't wait until
+// we're supply blocked.
 var SupplyDepotStep = BuildStep{
 	Name: "Supply Depot",
 	Predicate: func(b *Bot) bool {
@@ -288,6 +296,10 @@ func orbitalCommandStep(quantity int) *BuildStep {
 	}
 }
 
+// addonStep manages building add-ons for buildings.
+//
+// TODO: Check if there's enough space for the reactor, and if not, fly the
+// building somewhere safe.
 func addonStep(name string, buildingId api.UnitTypeID, addonId api.UnitTypeID, abilityId api.AbilityID, quantity int) *BuildStep {
 	return &BuildStep{
 		Name: name,
@@ -375,25 +387,29 @@ var TrainMarine = BuildStep{
 			b.DeductResources(ability.Train_Marine)
 
 			if barrack.AddOnTag == 0 {
+				log.Printf("Training marine at %v", barrack.Point())
 				continue
 			}
 
 			addon := b.Units.ByTag[barrack.AddOnTag]
 			if addon == nil {
+				log.Printf("Training marine at %v", barrack.Point())
 				continue
 			}
 
 			if !addon.Is(terran.BarracksReactor) {
+				log.Printf("Training marine at %v", barrack.Point())
 				continue
 			}
 
 			if !b.CanBuy(ability.Train_Marine) {
+				log.Printf("Training marine at %v", barrack.Point())
 				break
 			}
 
 			barrack.CommandQueue(ability.Train_Marine)
 			b.DeductResources(ability.Train_Marine)
-
+			log.Printf("Training two marines at %v", barrack.Point())
 		}
 	},
 
@@ -484,6 +500,17 @@ func upgradeStep(name string, abilityId api.AbilityID, buildingId api.UnitTypeID
 			}
 
 			return false
+		},
+	}
+}
+
+func attackWaveStep(config *AttackWaveConfig) *BuildStep {
+	return &BuildStep{
+		Name:      config.Name,
+		Predicate: config.Predicate,
+		Execute:   config.Execute,
+		Next: func(b *Bot) bool {
+			return true
 		},
 	}
 }

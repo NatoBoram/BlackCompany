@@ -171,11 +171,7 @@ func IsNotReturning(u *scl.Unit) bool {
 // HasTargetAbility filters units that are using a specific ability
 func HasTargetAbility(ability api.AbilityID) scl.Filter {
 	return func(u *scl.Unit) bool {
-		if u.TargetAbility() == ability {
-			return true
-		}
-
-		return false
+		return u.TargetAbility() == ability
 	}
 }
 
@@ -199,7 +195,7 @@ func IsGathering(u *scl.Unit) bool {
 		return true
 	}
 
-	gathering := ToKeys[api.AbilityID](scl.GatheringAbilities)
+	gathering := ToKeys(scl.GatheringAbilities)
 	return IsOrderedToAny(gathering...)(u) || HasAnyTargetAbility(gathering)(u)
 }
 
@@ -209,7 +205,7 @@ func IsReturning(u *scl.Unit) bool {
 		return true
 	}
 
-	returning := ToKeys[api.AbilityID](scl.ReturningAbilities)
+	returning := ToKeys(scl.ReturningAbilities)
 	return IsOrderedToAny(returning...)(u) || HasAnyTargetAbility(returning)(u)
 }
 
@@ -218,8 +214,8 @@ func IsGatheringOrReturning(u *scl.Unit) bool {
 		return true
 	}
 
-	gathering := ToKeys[api.AbilityID](scl.GatheringAbilities)
-	returning := ToKeys[api.AbilityID](scl.ReturningAbilities)
+	gathering := ToKeys(scl.GatheringAbilities)
+	returning := ToKeys(scl.ReturningAbilities)
 
 	abilities := make([]api.AbilityID, 0, len(gathering)+len(returning))
 	abilities = append(abilities, gathering...)
