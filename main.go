@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math"
+	"runtime/debug"
 
 	"github.com/NatoBoram/BlackCompany/bot"
 	"github.com/NatoBoram/BlackCompany/log"
@@ -66,6 +67,13 @@ func runAgent(c *client.Client) {
 
 	stop := make(chan struct{})
 	bot.Init(stop)
+
+	// Print version information for everyone to enjoy
+	info, ok := debug.ReadBuildInfo()
+	if ok {
+		message := fmt.Sprintf("BlackCompany %s", info.Main.Version)
+		bot.Actions.ChatSend(message, api.ActionChat_Team)
+	}
 
 	bot.Observe()
 	for bot.Client.Status == api.Status_in_game {
