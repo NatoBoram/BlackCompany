@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"math"
 	"math/rand"
 
@@ -105,7 +104,7 @@ var SupplyDepotStep = BuildStep{
 
 		// Go back to the closest resource after building
 		if resource := b.findResourcesNearTownHalls(townHalls).ClosestTo(pos); resource != nil {
-			log.Printf("Building supply depot at %v and queuing to gather at %v", *pos, resource.Point())
+			logger.Info("Building supply depot at %v and queuing to gather at %v", *pos, resource.Point())
 
 			builder.CommandPos(ability.Build_SupplyDepot, pos)
 			builder.CommandTagQueue(ability.Smart, resource.Tag)
@@ -118,7 +117,7 @@ var SupplyDepotStep = BuildStep{
 				b.Miners.GasForMiner[builder.Tag] = resource.Tag
 			}
 		} else {
-			log.Printf("Building supply depot at %v", *pos)
+			logger.Info("Building supply depot at %v", *pos)
 			builder.CommandPos(ability.Build_SupplyDepot, pos)
 		}
 
@@ -148,11 +147,7 @@ func buildingStep(name string, buildingId api.UnitTypeID, abilityId api.AbilityI
 			ordered := b.findWorkers().Filter(IsOrderedTo(abilityId))
 			inProgress := buildings.Filter(IsInProgress)
 			notStarted := ordered.Len() - inProgress.Len()
-			if buildings.Len()+notStarted >= quantity {
-				return false
-			}
-
-			return true
+			return buildings.Len()+notStarted < quantity
 		},
 
 		Execute: func(b *Bot) {
@@ -164,11 +159,7 @@ func buildingStep(name string, buildingId api.UnitTypeID, abilityId api.AbilityI
 			ordered := b.findWorkers().Filter(IsOrderedTo(abilityId))
 			inProgress := buildings.Filter(IsInProgress)
 			notStarted := ordered.Len() - inProgress.Len()
-			if buildings.Len()+notStarted >= quantity {
-				return true
-			}
-
-			return false
+			return buildings.Len()+notStarted >= quantity
 		},
 	}
 }
@@ -185,11 +176,8 @@ func refineryStep(quantity int) *BuildStep {
 			ordered := b.findWorkers().Filter(IsOrderedTo(ability.Build_Refinery))
 			inProgress := refineries.Filter(IsInProgress)
 			notStarted := ordered.Len() - inProgress.Len()
-			if refineries.Len()+notStarted >= quantity {
-				return false
-			}
 
-			return true
+			return refineries.Len()+notStarted < quantity
 		},
 
 		Execute: func(b *Bot) {
@@ -205,7 +193,7 @@ func refineryStep(quantity int) *BuildStep {
 				return
 			}
 
-			log.Printf("Building refinery at %v", randomVespeneGeyser.Point())
+			logger.Info("Building refinery at %v", randomVespeneGeyser.Point())
 			worker.CommandTag(ability.Build_Refinery, randomVespeneGeyser.Tag)
 			worker.CommandTagQueue(ability.Smart, randomVespeneGeyser.Tag)
 			b.DeductResources(ability.Build_Refinery)
@@ -217,11 +205,7 @@ func refineryStep(quantity int) *BuildStep {
 			ordered := b.findWorkers().Filter(IsOrderedTo(ability.Build_Refinery))
 			inProgress := refineries.Filter(IsInProgress)
 			notStarted := ordered.Len() - inProgress.Len()
-			if refineries.Len()+notStarted >= quantity {
-				return true
-			}
-
-			return false
+			return refineries.Len()+notStarted >= quantity
 		},
 	}
 }
@@ -278,7 +262,7 @@ func orbitalCommandStep(quantity int) *BuildStep {
 
 			// If it's not morphing yet, morph it
 			if !ordered {
-				log.Printf("Morphing orbital command at %v", reserved.Point())
+				logger.Info("Morphing orbital command at %v", reserved.Point())
 				reserved.Command(ability.Morph_OrbitalCommand)
 				b.DeductResources(ability.Morph_OrbitalCommand)
 				b.state.CcForOrbitalCommand = 0
@@ -288,11 +272,7 @@ func orbitalCommandStep(quantity int) *BuildStep {
 		Next: func(b *Bot) bool {
 			orbitalCommands := b.Units.My.OfType(terran.OrbitalCommand, terran.OrbitalCommandFlying)
 			inProgress := b.Units.My.OfType(terran.CommandCenter).Filter(IsOrderedTo(ability.Morph_OrbitalCommand))
-			if orbitalCommands.Len()+inProgress.Len() >= quantity {
-				return true
-			}
-
-			return false
+			return orbitalCommands.Len()+inProgress.Len() >= quantity
 		},
 	}
 }
@@ -347,18 +327,19 @@ func addonStep(name string, buildingId api.UnitTypeID, addonId api.UnitTypeID, a
 				return
 			}
 
-			log.Printf("Building %s at %v", name, reserved.Point())
+			logger.Info("Building %s at %v", name, reserved.Point())
 			reserved.Command(abilityId)
+
+			// In case it fails, queue the add-on to a new location
+			elsewhere := b.whereToBuild(reserved.Point(), scl.S5x3, addonId, abilityId)
+			reserved.CommandPosQueue(abilityId, elsewhere)
+
 			b.DeductResources(abilityId)
 			b.state.BuildingForAddOn = 0
 		},
 
 		Next: func(b *Bot) bool {
-			if b.Units.My.OfType(addonId).Len() >= quantity {
-				return true
-			}
-
-			return false
+			return b.Units.My.OfType(addonId).Len() >= quantity
 		},
 	}
 }
@@ -366,11 +347,7 @@ func addonStep(name string, buildingId api.UnitTypeID, addonId api.UnitTypeID, a
 var TrainMarine = BuildStep{
 	Name: "Train Marine",
 	Predicate: func(b *Bot) bool {
-		if !b.CanBuy(ability.Train_Marine) {
-			return false
-		}
-
-		return true
+		return b.CanBuy(ability.Train_Marine)
 	},
 
 	Execute: func(b *Bot) {
@@ -388,29 +365,29 @@ var TrainMarine = BuildStep{
 			b.DeductResources(ability.Train_Marine)
 
 			if barrack.AddOnTag == 0 {
-				log.Printf("Training marine at %v", barrack.Point())
+				logger.Info("Training marine at %v", barrack.Point())
 				continue
 			}
 
 			addon := b.Units.ByTag[barrack.AddOnTag]
 			if addon == nil {
-				log.Printf("Training marine at %v", barrack.Point())
+				logger.Info("Training marine at %v", barrack.Point())
 				continue
 			}
 
 			if !addon.Is(terran.BarracksReactor) {
-				log.Printf("Training marine at %v", barrack.Point())
+				logger.Info("Training marine at %v", barrack.Point())
 				continue
 			}
 
 			if !b.CanBuy(ability.Train_Marine) {
-				log.Printf("Training marine at %v", barrack.Point())
+				logger.Info("Training marine at %v", barrack.Point())
 				break
 			}
 
 			barrack.CommandQueue(ability.Train_Marine)
 			b.DeductResources(ability.Train_Marine)
-			log.Printf("Training two marines at %v", barrack.Point())
+			logger.Info("Training two marines at %v", barrack.Point())
 		}
 	},
 
@@ -442,7 +419,7 @@ func (b *Bot) build(name string, buildingId api.UnitTypeID, abilityId api.Abilit
 	}
 
 	if resource := b.findResourcesNearTownHalls(townHalls).ClosestTo(pos); resource != nil {
-		log.Printf("Building %s at %v and queuing to gather at %v", name, *pos, resource.Point())
+		logger.Info("Building %s at %v and queuing to gather at %v", name, *pos, resource.Point())
 
 		builder.CommandPos(abilityId, pos)
 		builder.CommandTagQueue(ability.Smart, resource.Tag)
@@ -455,7 +432,7 @@ func (b *Bot) build(name string, buildingId api.UnitTypeID, abilityId api.Abilit
 			b.Miners.GasForMiner[builder.Tag] = resource.Tag
 		}
 	} else {
-		log.Printf("Building %s at %v", name, *pos)
+		logger.Info("Building %s at %v", name, *pos)
 		builder.CommandPos(abilityId, pos)
 	}
 

@@ -1,8 +1,8 @@
 package main
 
 import (
-	"log"
 	"math"
+	"slices"
 
 	"github.com/aiseeq/s2l/lib/point"
 	"github.com/aiseeq/s2l/lib/scl"
@@ -115,13 +115,7 @@ func (b *Bot) isValidBuildPosition(pos point.Point, size scl.BuildingSize, build
 
 	// Touchy buildings are buildings that can touch one other type of building
 	touchyBuildings := []api.UnitTypeID{terran.SupplyDepot, terran.SupplyDepotLowered, terran.MissileTurret}
-	isTouchy := false
-	for _, touchy := range touchyBuildings {
-		if touchy == buildingType {
-			isTouchy = true
-			break
-		}
-	}
+	isTouchy := slices.Contains(touchyBuildings, buildingType)
 
 	// Check all buildings near the target position
 	myBuildings := b.Units.MyAll.Filter(IsStructure)
@@ -222,7 +216,7 @@ func buildingToSize(u *scl.Unit) scl.BuildingSize {
 		return scl.S5x5
 
 	default:
-		log.Printf("Unknown building size for %q: %f", u.UnitType, u.Radius)
+		logger.Info("Unknown building size for %q: %f", u.UnitType, u.Radius)
 	}
 
 	return 0

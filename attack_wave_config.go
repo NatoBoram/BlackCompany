@@ -1,8 +1,6 @@
 package main
 
 import (
-	"log"
-
 	"github.com/aiseeq/s2l/lib/scl"
 	"github.com/aiseeq/s2l/protocol/enums/terran"
 )
@@ -35,7 +33,8 @@ func firstWaveConfig() *AttackWaveConfig {
 				return
 			}
 
-			marines := b.Units.My.OfType(terran.Marine).Filter(scl.Ready)
+			inWaves := b.state.AttackWaves.Units(b)
+			marines := b.Units.My.OfType(terran.Marine).Filter(scl.Ready, NotIn(inWaves))
 			if marines.Empty() {
 				return
 			}
@@ -47,7 +46,7 @@ func firstWaveConfig() *AttackWaveConfig {
 			b.state.AttackWaves = append(b.state.AttackWaves, wave)
 
 			launched = true
-			log.Printf("Sending %d marines to enemy base %v", marines.Len(), b.Locs.EnemyStart)
+			logger.Info("Sending %d marines to enemy base %v", marines.Len(), b.Locs.EnemyStart)
 		},
 	}
 }

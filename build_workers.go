@@ -1,8 +1,6 @@
 package main
 
 import (
-	"log"
-
 	"github.com/aiseeq/s2l/lib/scl"
 	"github.com/aiseeq/s2l/protocol/enums/ability"
 	"github.com/aiseeq/s2l/protocol/enums/terran"
@@ -76,7 +74,7 @@ func (b *Bot) BuildWorker() {
 			resource = resources.ClosestTo(cc)
 		}
 
-		log.Printf("Training SCV for resource %v", resource.Point())
+		logger.Info("Training SCV for resource %v", resource.Point())
 		cc.CommandTag(ability.Rally_CommandCenter, resource.Tag)
 		cc.CommandQueue(ability.Train_SCV)
 		b.DeductResources(ability.Train_SCV)

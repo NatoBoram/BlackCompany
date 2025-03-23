@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"math/rand"
 	"slices"
 
@@ -15,6 +14,22 @@ import (
 type AttackWave struct {
 	Tags   scl.Tags
 	Target point.Point
+}
+
+type AttackWaves []*AttackWave
+
+func (a AttackWaves) Units(b *Bot) scl.Units {
+	count := 0
+	for _, wave := range a {
+		count += wave.Tags.Len()
+	}
+
+	units := make(scl.Units, 0, count)
+	for _, wave := range a {
+		units = append(units, wave.Units(b)...)
+	}
+
+	return units
 }
 
 // Units gets the units in an attack wave
@@ -93,7 +108,7 @@ func (a *AttackWave) UpdateTarget(b *Bot) {
 		target := buildings.ClosestTo(center).Point()
 
 		if target.Dist(a.Target) > LineOfSightScannerSweep.Float64() {
-			log.Printf("Switching target to a building at %v", target)
+			logger.Info("Switching target to a building at %v", target)
 		}
 
 		a.Target = target
@@ -107,7 +122,7 @@ func (a *AttackWave) UpdateTarget(b *Bot) {
 		target := units.ClosestTo(center).Point()
 
 		if target.Dist(a.Target) > LineOfSightScannerSweep.Float64() {
-			log.Printf("Switching target to a unit at %v", target)
+			logger.Info("Switching target to a unit at %v", target)
 		}
 
 		a.Target = target
@@ -118,7 +133,7 @@ func (a *AttackWave) UpdateTarget(b *Bot) {
 	target := b.Locs.EnemyExps[rand.Intn(len(b.Locs.EnemyExps))]
 
 	if target.Dist(a.Target) > LineOfSightScannerSweep.Float64() {
-		log.Printf("Switching target to an enemy expansion at %v", target)
+		logger.Info("Switching target to an enemy expansion at %v", target)
 	}
 
 	a.Target = target

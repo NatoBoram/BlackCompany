@@ -64,7 +64,7 @@ func launchProton(paths *Sc2Paths, flags Flags) error {
 func protonConfig(bot *api.PlayerSetup, participants ...*api.PlayerSetup) *client.GameConfig {
 	mapPath := random1v1Map()
 
-	log.Printf("Using map: %q\n", mapPath)
+	logger.Info("Using map: %q\n", mapPath)
 
 	client.SetMap(mapPath)
 

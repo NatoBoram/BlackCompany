@@ -312,3 +312,9 @@ func IsNotTag(tag api.UnitTag) scl.Filter {
 		return u.Tag != tag
 	}
 }
+
+func NotIn(units scl.Units) scl.Filter {
+	return func(u *scl.Unit) bool {
+		return units.ByTag(u.Tag) == nil
+	}
+}

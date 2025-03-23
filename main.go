@@ -56,6 +56,7 @@ func runAgent(c *client.Client) {
 		state: BotState{
 			CcForExp:            make(map[api.UnitTag]point.Point),
 			CcForOrbitalCommand: 0,
+			AttackWaves:         AttackWaves{},
 		},
 	}
 
@@ -75,7 +76,7 @@ func runAgent(c *client.Client) {
 				break
 			}
 
-			log.Printf("An unknown error occurred while stepping: %v", err)
+			logger.Error("An unknown error occurred while stepping: %v", err)
 			break
 		}
 
