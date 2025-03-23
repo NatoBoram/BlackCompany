@@ -8,6 +8,11 @@ import (
 	"github.com/aiseeq/s2l/protocol/enums/terran"
 )
 
+const (
+	// MaxWorkers is the maximum number of workers that can be trained.
+	MaxWorkers = 80
+)
+
 // BuildWorker trains SCVs from command centers.
 //
 //   - When SCVs can be afforded and there's less than 80 of them

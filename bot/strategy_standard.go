@@ -147,7 +147,8 @@ var SupplyDepotStep = BuildStep{
 	},
 
 	Next: func(b *Bot) bool {
-		return b.Units.My.OfType(terran.SupplyDepot).Len() >= 1 || b.findWorkers().Filter(filter.IsOrderedTo(ability.Build_SupplyDepot)).Exists()
+		return b.Units.My.OfType(terran.SupplyDepot).Len() >= 1 ||
+			b.findWorkers().Filter(filter.IsOrderedTo(ability.Build_SupplyDepot)).Exists()
 	},
 }
 

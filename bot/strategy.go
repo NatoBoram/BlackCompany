@@ -1,39 +1,38 @@
 package bot
 
-// Strategy represents a build order strategy
+// BuildStep is a step in a build order.
+type BuildStep struct {
+	// Name of the step.
+	Name string
+
+	// Predicate determines if this step should be executed.
+	Predicate func(*Bot) bool
+
+	// Execute is the action to be taken.
+	Execute func(*Bot)
+
+	// Next determines if we're ready to advance to the next step.
+	Next func(*Bot) bool
+}
+
+// BuildOrder is a list of build steps in a strategy.
+type BuildOrder []*BuildStep
+
+// Strategy is a set of build steps to be executed.
 type Strategy struct {
 	Name  string
 	Steps BuildOrder
 }
 
-// BuildOrder represents a sequence of build steps
-type BuildOrder []*BuildStep
-
-// BuildStep represents a single step in a build order
-type BuildStep struct {
-	Name string
-
-	// Called to check if we should execute this step
-	Predicate func(b *Bot) bool
-
-	// Called to execute this step
-	Execute func(b *Bot)
-
-	// Called to check if we should move to the next step
-	Next func(b *Bot) bool
-}
-
-// ExecuteStrategy executes the current strategy
-func (b *Bot) ExecuteStrategy(strategy *Strategy) {
-	for _, step := range strategy.Steps {
-		if !step.Predicate(b) {
-			continue
+// ExecuteStrategy executes a strategy.
+func (b *Bot) ExecuteStrategy(s *Strategy) {
+	for _, step := range s.Steps {
+		if step.Predicate(b) {
+			step.Execute(b)
 		}
 
-		step.Execute(b)
-
 		if !step.Next(b) {
-			return
+			break
 		}
 	}
 }
