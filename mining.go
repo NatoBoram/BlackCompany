@@ -80,7 +80,7 @@ func (b *Bot) acknowledgeMiners() {
 		}
 	}
 
-	// log.Printf(
+	// logger.Info(
 	// 	"Miners: %d, CCForMiner: %d, GasForMiner: %d, MineralForMiner: %d",
 	// 	miners.Len(), len(b.Miners.CCForMiner), len(b.Miners.GasForMiner), len(b.Miners.MineralForMiner),
 	// )

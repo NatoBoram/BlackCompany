@@ -1,8 +1,6 @@
 package main
 
 import (
-	"log"
-
 	"github.com/aiseeq/s2l/lib/point"
 	"github.com/aiseeq/s2l/lib/scl"
 	"github.com/aiseeq/s2l/protocol/api"
@@ -29,7 +27,7 @@ func (b *Bot) Expand() {
 		}
 
 		if !cc.IsFlying && cc.IsReady() {
-			log.Printf("Lifting Command Center from %s to expansion %s", cc.Point(), expansion)
+			logger.Info("Lifting Command Center from %s to expansion %s", cc.Point(), expansion)
 			cc.Command(ability.Lift_CommandCenter)
 
 			b.state.CcForExp[cc.Tag] = expansion
@@ -53,18 +51,32 @@ func (b *Bot) Expand() {
 		return
 	}
 
-	worker := b.findIdleOrGatheringWorkers().ClosestTo(expansion)
+	workers := b.findIdleOrGatheringWorkers()
+	if workers.Empty() {
+		return
+	}
+
+	worker := workers.ClosestTo(expansion)
 	if worker == nil {
 		return
 	}
 
-	nearestTownHall := b.findTownHalls().ClosestTo(worker)
+	townHalls := b.findTownHalls()
+	if townHalls.Empty() {
+		logger.Info("No town halls found, building Command Center at expansion %s", expansion)
+		location := b.whereToBuild(expansion, scl.S5x5, terran.CommandCenter, ability.Build_CommandCenter)
+		worker.CommandPos(ability.Build_CommandCenter, location)
+		b.DeductResources(ability.Build_CommandCenter)
+		return
+	}
+
+	nearestTownHall := townHalls.ClosestTo(worker)
 	towards := nearestTownHall.Point().Towards(expansion, nearestTownHall.SightRange())
 	location := b.whereToBuild(towards, scl.S5x5, terran.CommandCenter, ability.Build_CommandCenter)
 
 	// So do I build it there or near worker then fly it over?
 	if b.isFlyingFaster(worker, location, expansion) {
-		log.Printf("Building Command Center at base %s to fly to expansion %s", location, expansion)
+		logger.Info("Building Command Center at base %s to fly to expansion %s", location, expansion)
 
 		worker.CommandPos(ability.Build_CommandCenter, location)
 		b.DeductResources(ability.Build_CommandCenter)
@@ -75,7 +87,7 @@ func (b *Bot) Expand() {
 		return
 	}
 
-	log.Printf("Expanding to %s", expansion)
+	logger.Info("Expanding to %s", expansion)
 
 	worker.CommandPos(ability.Build_CommandCenter, expansion)
 	b.DeductResources(ability.Build_CommandCenter)
@@ -92,7 +104,7 @@ func (b *Bot) isFlyingFaster(worker *scl.Unit, base point.Pointer, expansion poi
 	flyTime := b.flyTime(base, terran.CommandCenterFlying, expansion)
 	walkTime := b.walkTime(worker, expansion)
 
-	log.Printf("Worker travel time: %f, fly time: %f", walkTime, flyTime)
+	logger.Debug("Worker travel time: %f, fly time: %f", walkTime, flyTime)
 
 	return flyTime < walkTime
 }

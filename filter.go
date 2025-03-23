@@ -106,6 +106,35 @@ func IsOrderedTo(ability api.AbilityID) scl.Filter {
 	}
 }
 
+// IsOrderedToTarget filters units that are currently ordered to use a specific
+// ability to a specific coordinate.
+func IsOrderedToTarget(ability api.AbilityID, target point.Point) scl.Filter {
+	return func(u *scl.Unit) bool {
+		if len(u.Orders) <= 0 {
+			return false
+		}
+
+		for _, order := range u.Orders {
+			orderPos := order.GetTargetWorldSpacePos()
+			orderPoint := point.Pt3(orderPos)
+
+			if order.AbilityId == ability && orderPoint.Dist(target) < 1 {
+				return true
+			}
+		}
+
+		return false
+	}
+}
+
+// IsNotOrderedToTarget filters units that are not currently ordered to use a
+// specific ability to a specific coordinate.
+func IsNotOrderedToTarget(ability api.AbilityID, target point.Point) scl.Filter {
+	return func(u *scl.Unit) bool {
+		return !IsOrderedToTarget(ability, target)(u)
+	}
+}
+
 func IsOrderedToAny(abilities ...api.AbilityID) scl.Filter {
 	return func(u *scl.Unit) bool {
 		if len(u.Orders) <= 0 {
@@ -171,11 +200,7 @@ func IsNotReturning(u *scl.Unit) bool {
 // HasTargetAbility filters units that are using a specific ability
 func HasTargetAbility(ability api.AbilityID) scl.Filter {
 	return func(u *scl.Unit) bool {
-		if u.TargetAbility() == ability {
-			return true
-		}
-
-		return false
+		return u.TargetAbility() == ability
 	}
 }
 
@@ -199,7 +224,7 @@ func IsGathering(u *scl.Unit) bool {
 		return true
 	}
 
-	gathering := ToKeys[api.AbilityID](scl.GatheringAbilities)
+	gathering := ToKeys(scl.GatheringAbilities)
 	return IsOrderedToAny(gathering...)(u) || HasAnyTargetAbility(gathering)(u)
 }
 
@@ -209,7 +234,7 @@ func IsReturning(u *scl.Unit) bool {
 		return true
 	}
 
-	returning := ToKeys[api.AbilityID](scl.ReturningAbilities)
+	returning := ToKeys(scl.ReturningAbilities)
 	return IsOrderedToAny(returning...)(u) || HasAnyTargetAbility(returning)(u)
 }
 
@@ -218,8 +243,8 @@ func IsGatheringOrReturning(u *scl.Unit) bool {
 		return true
 	}
 
-	gathering := ToKeys[api.AbilityID](scl.GatheringAbilities)
-	returning := ToKeys[api.AbilityID](scl.ReturningAbilities)
+	gathering := ToKeys(scl.GatheringAbilities)
+	returning := ToKeys(scl.ReturningAbilities)
 
 	abilities := make([]api.AbilityID, 0, len(gathering)+len(returning))
 	abilities = append(abilities, gathering...)
@@ -304,6 +329,8 @@ func SameHeightAs(u *scl.Unit) scl.Filter {
 	}
 }
 
+// IsCcAtExpansion checks if a command center is at its designated expansion
+// location. Useful to exclude bases that need to be flown to their expansion.
 func IsCcAtExpansion(ccForExp map[api.UnitTag]point.Point) scl.Filter {
 	return func(u *scl.Unit) bool {
 		expansion, ok := ccForExp[u.Tag]
@@ -314,5 +341,11 @@ func IsCcAtExpansion(ccForExp map[api.UnitTag]point.Point) scl.Filter {
 func IsNotTag(tag api.UnitTag) scl.Filter {
 	return func(u *scl.Unit) bool {
 		return u.Tag != tag
+	}
+}
+
+func NotIn(units scl.Units) scl.Filter {
+	return func(u *scl.Unit) bool {
+		return units.ByTag(u.Tag) == nil
 	}
 }

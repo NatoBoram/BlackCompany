@@ -57,6 +57,16 @@ func (b *Bot) findTownHalls() scl.Units {
 	)
 }
 
+// findProductionStructures finds all structures capable of training military
+// units.
+func (b *Bot) findProductionStructures() scl.Units {
+	return b.Units.My.OfType(
+		protoss.Gateway, protoss.RoboticsFacility, protoss.Stargate,
+		terran.Barracks, terran.Factory, terran.Starport,
+		zerg.Hatchery, zerg.Lair, zerg.Hive,
+	)
+}
+
 // findMiners finds all units capable of mining resources.
 func (b *Bot) findMiners() scl.Units {
 	return b.Units.My.OfType(protoss.Probe, terran.MULE, terran.SCV, zerg.Drone)

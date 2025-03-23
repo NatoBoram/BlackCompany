@@ -1,8 +1,6 @@
 package main
 
 import (
-	"log"
-
 	"github.com/aiseeq/s2l/lib/point"
 	"github.com/aiseeq/s2l/lib/scl"
 	"github.com/aiseeq/s2l/protocol/api"
@@ -28,6 +26,9 @@ type BotState struct {
 	// BuildingForAddOn marks a barracks as reserved for building a reactor or
 	// tech lab.
 	BuildingForAddOn api.UnitTag
+
+	// AttackWaves holds the groups of units that are used for attacking.
+	AttackWaves AttackWaves
 }
 
 // Step is called at every step of the game. This is the main loop of the bot.
@@ -48,11 +49,13 @@ func (b *Bot) Step() {
 	b.Expand()
 
 	b.ExecuteStrategy(&Standard)
+	b.AttackWaves()
+	b.Workers()
 
 	b.Cmds.Process(&b.Actions)
 	if len(b.Actions) > 0 {
 		if _, err := b.Client.Action(api.RequestAction{Actions: b.Actions}); err != nil {
-			log.Printf("Failed to send actions: %v", err)
+			logger.Info("Failed to send actions: %v", err)
 		}
 
 		b.Actions = nil
@@ -63,7 +66,7 @@ func (b *Bot) Step() {
 func (b *Bot) Observe() {
 	o, err := b.Client.Observation(api.RequestObservation{})
 	if err != nil {
-		log.Printf("Failed to observe: %v", err)
+		logger.Info("Failed to observe: %v", err)
 		return
 	}
 
@@ -78,19 +81,19 @@ func OnUnitCreated(unit *scl.Unit) {
 
 func (b *Bot) ParseData() {
 	if b.Info == nil {
-		log.Printf("Info is nil")
+		logger.Info("Info is nil")
 		return
 	}
 	if b.Obs == nil {
-		log.Printf("Observation is nil")
+		logger.Info("Observation is nil")
 		return
 	}
 	if b.Obs.RawData == nil {
-		log.Printf("RawData is nil")
+		logger.Info("RawData is nil")
 		return
 	}
 	if b.Obs.RawData.MapState == nil {
-		log.Printf("MapState is nil")
+		logger.Info("MapState is nil")
 		return
 	}
 

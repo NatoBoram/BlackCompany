@@ -1,10 +1,10 @@
 package main
 
 import (
-	"log"
 	"math"
 	"math/rand"
 
+	"github.com/aiseeq/s2l/lib/point"
 	"github.com/aiseeq/s2l/lib/scl"
 	"github.com/aiseeq/s2l/protocol/api"
 	"github.com/aiseeq/s2l/protocol/enums/ability"
@@ -19,6 +19,10 @@ var Standard = Strategy{
 		refineryStep(1),
 		orbitalCommandStep(1),
 		addonStep("Barracks Reactor", terran.Barracks, terran.BarracksReactor, ability.Build_Reactor_Barracks, 1),
+		// TODO: Turn Expand() into a step and insert it here. It is extremely funny
+		// to see it continuously create command centers at home and send them
+		// flying.
+		// buildingStep("Command Center", terran.CommandCenter, ability.Build_CommandCenter, 2),
 		&TrainMarine,
 		buildingStep("Barracks", terran.Barracks, ability.Build_Barracks, 3, terran.SupplyDepot),
 		orbitalCommandStep(2),
@@ -28,7 +32,7 @@ var Standard = Strategy{
 		buildingStep("Factory", terran.Factory, ability.Build_Factory, 1, terran.BarracksTechLab),
 		buildingStep("Engineering Bay", terran.EngineeringBay, ability.Build_EngineeringBay, 1, terran.SupplyDepot),
 		upgradeStep("Infantry Weapons Level 1", ability.Research_TerranInfantryWeaponsLevel1, terran.EngineeringBay),
-		// At this point, we should have enough marines to launch an attack
+		attackWaveStep(firstWaveConfig()),
 		refineryStep(4),
 		buildingStep("Barracks", terran.Barracks, ability.Build_Barracks, 5, terran.SupplyDepot),
 		buildingStep("Starport", terran.Starport, ability.Build_Starport, 1, terran.Factory),
@@ -39,10 +43,30 @@ var Standard = Strategy{
 		// Medivac (x4)
 		// Siege Tank (x2)
 		upgradeStep("Infantry Armor Level 1", ability.Research_TerranInfantryArmorLevel1, terran.EngineeringBay),
+
 		// At this point, we should have enough units to launch a bigger attack.
+		// TODO: Update to a second wave
+		attackWaveStep(firstWaveConfig()),
+
+		// These are just in the meantime
+		buildingStep("Armory", terran.Armory, ability.Build_Armory, 1, terran.Factory),
+
+		upgradeStep("Infantry Weapons Level 2", ability.Research_TerranInfantryWeaponsLevel2, terran.EngineeringBay),
+		upgradeStep("Infantry Armor Level 2", ability.Research_TerranInfantryArmorLevel2, terran.EngineeringBay),
+		attackWaveStep(firstWaveConfig()),
+
+		upgradeStep("Infantry Weapons Level 3", ability.Research_TerranInfantryWeaponsLevel3, terran.EngineeringBay),
+		upgradeStep("Infantry Armor Level 3", ability.Research_TerranInfantryArmorLevel3, terran.EngineeringBay),
+		attackWaveStep(firstWaveConfig()),
+
+		attackWaveStep(fullSupplyWaveConfig()),
 	},
 }
 
+// SupplyDepotStep builds supply depots.
+//
+// TODO: Continuously make one supply depot after the other. Don't wait until
+// we're supply blocked.
 var SupplyDepotStep = BuildStep{
 	Name: "Supply Depot",
 	Predicate: func(b *Bot) bool {
@@ -58,14 +82,18 @@ var SupplyDepotStep = BuildStep{
 			return false
 		}
 
-		// Check if we have town halls
-		townHalls := b.findTownHalls().Filter(IsCcAtExpansion(b.state.CcForExp))
-		if townHalls.Empty() {
+		townHalls := b.findTownHalls()
+		production := b.findProductionStructures()
+
+		structures := make(scl.Units, 0, len(townHalls)+len(production))
+		structures = append(structures, townHalls...)
+		structures = append(structures, production...)
+		if structures.Empty() {
 			return false
 		}
 
 		// Calculate how much supply we'll use during depot construction
-		timeForScv := float64(BuildTimeSCV) / float64(townHalls.Len())
+		timeForScv := float64(BuildTimeSCV) / float64(structures.Len())
 		scvDuringDepots := uint32(math.Ceil(float64(BuildTimeSupplyDepot) / timeForScv))
 
 		// Don't build if we have enough supply or if already building
@@ -96,7 +124,7 @@ var SupplyDepotStep = BuildStep{
 
 		// Go back to the closest resource after building
 		if resource := b.findResourcesNearTownHalls(townHalls).ClosestTo(pos); resource != nil {
-			log.Printf("Building supply depot at %v and queuing to gather at %v", *pos, resource.Point())
+			logger.Info("Building supply depot at %v and queuing to gather at %v", *pos, resource.Point())
 
 			builder.CommandPos(ability.Build_SupplyDepot, pos)
 			builder.CommandTagQueue(ability.Smart, resource.Tag)
@@ -109,7 +137,7 @@ var SupplyDepotStep = BuildStep{
 				b.Miners.GasForMiner[builder.Tag] = resource.Tag
 			}
 		} else {
-			log.Printf("Building supply depot at %v", *pos)
+			logger.Info("Building supply depot at %v", *pos)
 			builder.CommandPos(ability.Build_SupplyDepot, pos)
 		}
 
@@ -139,11 +167,7 @@ func buildingStep(name string, buildingId api.UnitTypeID, abilityId api.AbilityI
 			ordered := b.findWorkers().Filter(IsOrderedTo(abilityId))
 			inProgress := buildings.Filter(IsInProgress)
 			notStarted := ordered.Len() - inProgress.Len()
-			if buildings.Len()+notStarted >= quantity {
-				return false
-			}
-
-			return true
+			return buildings.Len()+notStarted < quantity
 		},
 
 		Execute: func(b *Bot) {
@@ -155,11 +179,7 @@ func buildingStep(name string, buildingId api.UnitTypeID, abilityId api.AbilityI
 			ordered := b.findWorkers().Filter(IsOrderedTo(abilityId))
 			inProgress := buildings.Filter(IsInProgress)
 			notStarted := ordered.Len() - inProgress.Len()
-			if buildings.Len()+notStarted >= quantity {
-				return true
-			}
-
-			return false
+			return buildings.Len()+notStarted >= quantity
 		},
 	}
 }
@@ -176,11 +196,8 @@ func refineryStep(quantity int) *BuildStep {
 			ordered := b.findWorkers().Filter(IsOrderedTo(ability.Build_Refinery))
 			inProgress := refineries.Filter(IsInProgress)
 			notStarted := ordered.Len() - inProgress.Len()
-			if refineries.Len()+notStarted >= quantity {
-				return false
-			}
 
-			return true
+			return refineries.Len()+notStarted < quantity
 		},
 
 		Execute: func(b *Bot) {
@@ -196,7 +213,7 @@ func refineryStep(quantity int) *BuildStep {
 				return
 			}
 
-			log.Printf("Building refinery at %v", randomVespeneGeyser.Point())
+			logger.Info("Building refinery at %v", randomVespeneGeyser.Point())
 			worker.CommandTag(ability.Build_Refinery, randomVespeneGeyser.Tag)
 			worker.CommandTagQueue(ability.Smart, randomVespeneGeyser.Tag)
 			b.DeductResources(ability.Build_Refinery)
@@ -208,11 +225,7 @@ func refineryStep(quantity int) *BuildStep {
 			ordered := b.findWorkers().Filter(IsOrderedTo(ability.Build_Refinery))
 			inProgress := refineries.Filter(IsInProgress)
 			notStarted := ordered.Len() - inProgress.Len()
-			if refineries.Len()+notStarted >= quantity {
-				return true
-			}
-
-			return false
+			return refineries.Len()+notStarted >= quantity
 		},
 	}
 }
@@ -269,7 +282,7 @@ func orbitalCommandStep(quantity int) *BuildStep {
 
 			// If it's not morphing yet, morph it
 			if !ordered {
-				log.Printf("Morphing orbital command at %v", reserved.Point())
+				logger.Info("Morphing orbital command at %v", reserved.Point())
 				reserved.Command(ability.Morph_OrbitalCommand)
 				b.DeductResources(ability.Morph_OrbitalCommand)
 				b.state.CcForOrbitalCommand = 0
@@ -279,15 +292,15 @@ func orbitalCommandStep(quantity int) *BuildStep {
 		Next: func(b *Bot) bool {
 			orbitalCommands := b.Units.My.OfType(terran.OrbitalCommand, terran.OrbitalCommandFlying)
 			inProgress := b.Units.My.OfType(terran.CommandCenter).Filter(IsOrderedTo(ability.Morph_OrbitalCommand))
-			if orbitalCommands.Len()+inProgress.Len() >= quantity {
-				return true
-			}
-
-			return false
+			return orbitalCommands.Len()+inProgress.Len() >= quantity
 		},
 	}
 }
 
+// addonStep manages building add-ons for buildings.
+//
+// TODO: Check if there's enough space for the reactor, and if not, fly the
+// building somewhere safe.
 func addonStep(name string, buildingId api.UnitTypeID, addonId api.UnitTypeID, abilityId api.AbilityID, quantity int) *BuildStep {
 	return &BuildStep{
 		Name: name,
@@ -334,18 +347,19 @@ func addonStep(name string, buildingId api.UnitTypeID, addonId api.UnitTypeID, a
 				return
 			}
 
-			log.Printf("Building %s at %v", name, reserved.Point())
+			logger.Info("Building %s at %v", name, reserved.Point())
 			reserved.Command(abilityId)
+
+			// In case it fails, queue the add-on to a new location
+			elsewhere := b.whereToBuild(reserved.Point(), scl.S5x3, addonId, abilityId)
+			reserved.CommandPosQueue(abilityId, elsewhere)
+
 			b.DeductResources(abilityId)
 			b.state.BuildingForAddOn = 0
 		},
 
 		Next: func(b *Bot) bool {
-			if b.Units.My.OfType(addonId).Len() >= quantity {
-				return true
-			}
-
-			return false
+			return b.Units.My.OfType(addonId).Len() >= quantity
 		},
 	}
 }
@@ -353,11 +367,7 @@ func addonStep(name string, buildingId api.UnitTypeID, addonId api.UnitTypeID, a
 var TrainMarine = BuildStep{
 	Name: "Train Marine",
 	Predicate: func(b *Bot) bool {
-		if !b.CanBuy(ability.Train_Marine) {
-			return false
-		}
-
-		return true
+		return b.CanBuy(ability.Train_Marine)
 	},
 
 	Execute: func(b *Bot) {
@@ -367,33 +377,25 @@ var TrainMarine = BuildStep{
 		}
 
 		for _, barrack := range barracks {
-			if !b.CanBuy(ability.Train_Marine) {
+			amount := b.amountTrainMarines(barrack)
+			if amount == 0 {
 				break
 			}
 
-			barrack.Command(ability.Train_Marine)
-			b.DeductResources(ability.Train_Marine)
-
-			if barrack.AddOnTag == 0 {
-				continue
+			if rally := b.rallyPoint(); rally != nil {
+				barrack.CommandPos(ability.Rally_Building, rally)
 			}
 
-			addon := b.Units.ByTag[barrack.AddOnTag]
-			if addon == nil {
-				continue
+			if amount == 1 {
+				barrack.CommandQueue(ability.Train_Marine)
+				logger.Info("Training one marine at %v", barrack.Point())
 			}
 
-			if !addon.Is(terran.BarracksReactor) {
-				continue
+			if amount == 2 {
+				barrack.CommandQueue(ability.Train_Marine)
+				barrack.CommandQueue(ability.Train_Marine)
+				logger.Info("Training two marines at %v", barrack.Point())
 			}
-
-			if !b.CanBuy(ability.Train_Marine) {
-				break
-			}
-
-			barrack.CommandQueue(ability.Train_Marine)
-			b.DeductResources(ability.Train_Marine)
-
 		}
 	},
 
@@ -402,12 +404,45 @@ var TrainMarine = BuildStep{
 	},
 }
 
+func (b *Bot) amountTrainMarines(barracks *scl.Unit) int {
+	if !b.CanBuy(ability.Train_Marine) {
+		return 0
+	}
+
+	// Confirmed that we're about to train one marine.
+	b.DeductResources(ability.Train_Marine)
+
+	if barracks.AddOnTag == 0 {
+		return 1
+	}
+
+	addon := b.Units.ByTag[barracks.AddOnTag]
+	if addon == nil || !addon.Is(terran.BarracksReactor) || !b.CanBuy(ability.Train_Marine) {
+		return 1
+	}
+
+	// Confirmed that we're about to train two marines.
+	b.DeductResources(ability.Train_Marine)
+	return 2
+}
+
+func (b *Bot) rallyPoint() *point.Point {
+	townHalls := b.findTownHalls().Filter(IsCcAtExpansion(b.state.CcForExp))
+	if townHalls.Empty() {
+		return nil
+	}
+
+	closest := townHalls.ClosestTo(b.Locs.EnemyStart)
+	rally := closest.Towards(b.Locs.EnemyStart, closest.SightRange())
+	return &rally
+}
+
 func (b *Bot) build(name string, buildingId api.UnitTypeID, abilityId api.AbilityID, size scl.BuildingSize) {
 	if !b.CanBuy(abilityId) {
 		return
 	}
 
-	townHalls := b.findTownHalls()
+	townHalls := b.findTownHalls().Filter(IsCcAtExpansion(b.state.CcForExp))
 	if townHalls.Empty() {
 		return
 	}
@@ -425,7 +460,7 @@ func (b *Bot) build(name string, buildingId api.UnitTypeID, abilityId api.Abilit
 	}
 
 	if resource := b.findResourcesNearTownHalls(townHalls).ClosestTo(pos); resource != nil {
-		log.Printf("Building %s at %v and queuing to gather at %v", name, *pos, resource.Point())
+		logger.Info("Building %s at %v and queuing to gather at %v", name, *pos, resource.Point())
 
 		builder.CommandPos(abilityId, pos)
 		builder.CommandTagQueue(ability.Smart, resource.Tag)
@@ -438,7 +473,7 @@ func (b *Bot) build(name string, buildingId api.UnitTypeID, abilityId api.Abilit
 			b.Miners.GasForMiner[builder.Tag] = resource.Tag
 		}
 	} else {
-		log.Printf("Building %s at %v", name, *pos)
+		logger.Info("Building %s at %v", name, *pos)
 		builder.CommandPos(abilityId, pos)
 	}
 
@@ -470,6 +505,7 @@ func upgradeStep(name string, abilityId api.AbilityID, buildingId api.UnitTypeID
 				return
 			}
 
+			logger.Info("Researching %s", name)
 			buildings.First().Command(abilityId)
 			b.DeductResources(abilityId)
 		},
@@ -484,6 +520,17 @@ func upgradeStep(name string, abilityId api.AbilityID, buildingId api.UnitTypeID
 			}
 
 			return false
+		},
+	}
+}
+
+func attackWaveStep(config *AttackWaveConfig) *BuildStep {
+	return &BuildStep{
+		Name:      config.Name,
+		Predicate: config.Predicate,
+		Execute:   config.Execute,
+		Next: func(b *Bot) bool {
+			return true
 		},
 	}
 }
