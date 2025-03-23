@@ -104,7 +104,7 @@ func (b *Bot) isFlyingFaster(worker *scl.Unit, base point.Pointer, expansion poi
 	flyTime := b.flyTime(base, terran.CommandCenterFlying, expansion)
 	walkTime := b.walkTime(worker, expansion)
 
-	logger.Info("Worker travel time: %f, fly time: %f", walkTime, flyTime)
+	logger.Debug("Worker travel time: %f, fly time: %f", walkTime, flyTime)
 
 	return flyTime < walkTime
 }
