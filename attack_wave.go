@@ -1,6 +1,8 @@
 package main
 
 import (
+	"log"
+	"math/rand"
 	"slices"
 
 	"github.com/aiseeq/s2l/lib/point"
@@ -37,6 +39,8 @@ func (a *AttackWave) Step(b *Bot) {
 
 	units = a.Recenter(b, units)
 	a.Advance(b, units)
+
+	a.UpdateTarget(b)
 }
 
 // Recenter moves units that are too far from the wave towards the center of the
@@ -49,7 +53,7 @@ func (a *AttackWave) Recenter(b *Bot, units scl.Units) scl.Units {
 	center := units.Center()
 	for _, u := range units {
 		if u.Dist(center) > LineOfSightScannerSweep.Float64() {
-			dest := center.Towards(u, LineOfSightScannerSweep.Float64())
+			dest := center.Towards(u, LineOfSightScannerSweep.Float64()-1)
 			u.CommandPos(ability.Move, dest)
 			units.Remove(u)
 		}
@@ -70,6 +74,54 @@ func (a *AttackWave) Advance(b *Bot, units scl.Units) scl.Units {
 	}
 
 	return units
+}
+
+// UpdateTarget changes the focus of this attack wave to something else.
+func (a *AttackWave) UpdateTarget(b *Bot) {
+	center := a.Units(b).Center()
+	dist := a.Target.Dist(center)
+	if dist > LineOfSightScannerSweep.Float64() {
+		return
+	}
+
+	// It's too close to the target, let's find an enemy unit then target it
+	enemies := b.Units.Enemy.All()
+
+	// Destroy all buildings to win the game
+	buildings := enemies.Filter(scl.Structure)
+	if buildings.Exists() {
+		target := buildings.ClosestTo(center).Point()
+
+		if target.Dist(a.Target) > LineOfSightScannerSweep.Float64() {
+			log.Printf("Switching target to a building at %v", target)
+		}
+
+		a.Target = target
+		return
+	}
+
+	// Units are generally closer to buildings or they prevent from destroying
+	// buildings
+	units := enemies.Filter(scl.NotStructure)
+	if units.Exists() {
+		target := units.ClosestTo(center).Point()
+
+		if target.Dist(a.Target) > LineOfSightScannerSweep.Float64() {
+			log.Printf("Switching target to a unit at %v", target)
+		}
+
+		a.Target = target
+		return
+	}
+
+	// Expansions are obvious choices for building locations
+	target := b.Locs.EnemyExps[rand.Intn(len(b.Locs.EnemyExps))]
+
+	if target.Dist(a.Target) > LineOfSightScannerSweep.Float64() {
+		log.Printf("Switching target to an enemy expansion at %v", target)
+	}
+
+	a.Target = target
 }
 
 // AttackWaves handles attack waves.
