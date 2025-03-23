@@ -50,6 +50,7 @@ func (b *Bot) Step() {
 
 	b.ExecuteStrategy(&Standard)
 	b.AttackWaves()
+	b.Workers()
 
 	b.Cmds.Process(&b.Actions)
 	if len(b.Actions) > 0 {
