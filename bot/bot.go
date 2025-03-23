@@ -1,6 +1,8 @@
-package main
+package bot
 
 import (
+	"github.com/NatoBoram/BlackCompany/filter"
+	"github.com/NatoBoram/BlackCompany/log"
 	"github.com/aiseeq/s2l/lib/point"
 	"github.com/aiseeq/s2l/lib/scl"
 	"github.com/aiseeq/s2l/protocol/api"
@@ -12,7 +14,7 @@ type Bot struct {
 
 	miningInitialized bool
 
-	state BotState
+	State BotState
 }
 
 type BotState struct {
@@ -55,7 +57,7 @@ func (b *Bot) Step() {
 	b.Cmds.Process(&b.Actions)
 	if len(b.Actions) > 0 {
 		if _, err := b.Client.Action(api.RequestAction{Actions: b.Actions}); err != nil {
-			logger.Info("Failed to send actions: %v", err)
+			log.Info("Failed to send actions: %v", err)
 		}
 
 		b.Actions = nil
@@ -66,7 +68,7 @@ func (b *Bot) Step() {
 func (b *Bot) Observe() {
 	o, err := b.Client.Observation(api.RequestObservation{})
 	if err != nil {
-		logger.Info("Failed to observe: %v", err)
+		log.Info("Failed to observe: %v", err)
 		return
 	}
 
@@ -81,19 +83,19 @@ func OnUnitCreated(unit *scl.Unit) {
 
 func (b *Bot) ParseData() {
 	if b.Info == nil {
-		logger.Info("Info is nil")
+		log.Info("Info is nil")
 		return
 	}
 	if b.Obs == nil {
-		logger.Info("Observation is nil")
+		log.Info("Observation is nil")
 		return
 	}
 	if b.Obs.RawData == nil {
-		logger.Info("RawData is nil")
+		log.Info("RawData is nil")
 		return
 	}
 	if b.Obs.RawData.MapState == nil {
-		logger.Info("MapState is nil")
+		log.Info("MapState is nil")
 		return
 	}
 
@@ -106,7 +108,7 @@ func (b *Bot) ParseData() {
 		townHalls := b.findTownHalls()
 		resources := b.findResourcesNearTownHalls(townHalls)
 		turrets := b.findTurretsNearResourcesNearTownHalls(resources)
-		b.InitMining(ToPoints(turrets))
+		b.InitMining(filter.ToPoints(turrets))
 		b.miningInitialized = true
 	} else {
 		b.acknowledgeMiners()

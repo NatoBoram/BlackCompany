@@ -1,4 +1,4 @@
-package main
+package filter
 
 import (
 	"github.com/aiseeq/s2l/lib/point"

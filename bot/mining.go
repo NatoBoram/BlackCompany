@@ -1,13 +1,14 @@
-package main
+package bot
 
 import (
+	"github.com/NatoBoram/BlackCompany/filter"
 	"github.com/aiseeq/s2l/lib/scl"
 	"github.com/aiseeq/s2l/protocol/api"
 )
 
 // acknowledgeMiners saves metadata about miners.
 func (b *Bot) acknowledgeMiners() {
-	townHalls := b.findTownHalls()
+	townHalls := b.findTownHalls().Filter(filter.IsCcAtExpansion(b.State.CcForExp))
 	if townHalls.Empty() {
 		return
 	}
@@ -25,12 +26,12 @@ func (b *Bot) acknowledgeMiners() {
 	b.Miners.CCForMiner = map[api.UnitTag]api.UnitTag{}
 	for _, th := range townHalls {
 		resources := b.findResourcesNearTownHalls(scl.Units{th})
-		targets := ToTags(resources)
+		targets := filter.ToTags(resources)
 		targets = append(targets, th.Tag)
 
 		for _, miner := range miners {
-			maybeAssigned := HasAnyTargetTag(targets)(miner)
-			workingNearby := miner.IsCloserThan(th.SightRange(), th) && IsGatheringOrReturning(miner)
+			maybeAssigned := filter.HasAnyTargetTag(targets)(miner)
+			workingNearby := miner.IsCloserThan(th.SightRange(), th) && filter.IsGatheringOrReturning(miner)
 
 			if maybeAssigned || workingNearby {
 				b.Miners.CCForMiner[miner.Tag] = th.Tag
@@ -46,7 +47,7 @@ func (b *Bot) acknowledgeMiners() {
 	// it from `GasForMiner`.
 	mineralFields := b.findMineralFieldsNearTownHalls(townHalls)
 	for _, mf := range mineralFields {
-		for _, miner := range miners.Filter(HasTargetTag(mf.Tag)) {
+		for _, miner := range miners.Filter(filter.HasTargetTag(mf.Tag)) {
 			b.Miners.MineralForMiner[miner.Tag] = mf.Tag
 			b.Miners.LastSeen[miner.Tag] = b.Loop
 
@@ -57,7 +58,7 @@ func (b *Bot) acknowledgeMiners() {
 
 	vespeneGeysers := b.findClaimedVespeneGeysersNearTownHalls(townHalls)
 	for _, gas := range vespeneGeysers {
-		for _, miner := range miners.Filter(HasTargetTag(gas.Tag)) {
+		for _, miner := range miners.Filter(filter.HasTargetTag(gas.Tag)) {
 			b.Miners.GasForMiner[miner.Tag] = gas.Tag
 			b.Miners.LastSeen[miner.Tag] = b.Loop
 
@@ -72,7 +73,7 @@ func (b *Bot) acknowledgeMiners() {
 	// Some miners are somehow not tagged to a mineral field, vespene geyser, or
 	// town hall, but are still in the process of gathering or returning. Let's
 	// keep them.
-	for _, miner := range miners.Filter(IsNotGathering, IsNotReturning) {
+	for _, miner := range miners.Filter(scl.NotReady) {
 		if seen.ByTag(miner.Tag) == nil {
 			delete(b.Miners.CCForMiner, miner.Tag)
 			delete(b.Miners.GasForMiner, miner.Tag)

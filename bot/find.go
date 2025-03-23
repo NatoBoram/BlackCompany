@@ -1,6 +1,7 @@
-package main
+package bot
 
 import (
+	"github.com/NatoBoram/BlackCompany/filter"
 	"github.com/aiseeq/s2l/lib/scl"
 	"github.com/aiseeq/s2l/protocol/enums/protoss"
 	"github.com/aiseeq/s2l/protocol/enums/terran"
@@ -11,7 +12,7 @@ import (
 func (b *Bot) findMineralFieldsNearTownHalls(townHalls scl.Units) scl.Units {
 	mineralFields := make(scl.Units, 0, len(townHalls)*8)
 	for _, th := range townHalls {
-		ccMineralFields := b.Units.Minerals.All().CloserThan(th.SightRange(), th).Filter(HasMinerals)
+		ccMineralFields := b.Units.Minerals.All().CloserThan(th.SightRange(), th).Filter(filter.HasMinerals)
 		mineralFields = append(mineralFields, ccMineralFields...)
 	}
 
@@ -27,7 +28,7 @@ func (b *Bot) findClaimedVespeneGeysersNearTownHalls(townHalls scl.Units) scl.Un
 			protoss.Assimilator, protoss.AssimilatorRich,
 			terran.Refinery, terran.RefineryRich,
 			zerg.Extractor, zerg.ExtractorRich,
-		).CloserThan(th.SightRange(), th).Filter(HasGas)
+		).CloserThan(th.SightRange(), th).Filter(filter.HasGas)
 
 		refineries = append(refineries, ccRefineries...)
 	}
@@ -40,7 +41,7 @@ func (b *Bot) findVespeneGeysersNearTownHalls(townHalls scl.Units) scl.Units {
 	vespeneGeysers := make(scl.Units, 0, len(townHalls)*2)
 	for _, th := range townHalls {
 		ccGeysers := b.Units.Geysers.All().
-			CloserThan(th.SightRange(), th).Filter(HasGas)
+			CloserThan(th.SightRange(), th).Filter(filter.HasGas)
 
 		vespeneGeysers = append(vespeneGeysers, ccGeysers...)
 	}
@@ -80,18 +81,18 @@ func (b *Bot) findWorkers() scl.Units {
 // findIdleOrGatheringWorkers finds idle or gathering workers that are not
 // currently building a structure.
 func (b *Bot) findIdleOrGatheringWorkers() scl.Units {
-	workers := b.findWorkers().Filter(IsNotBuilding)
+	workers := b.findWorkers().Filter(filter.IsNotBuilding)
 
 	if idle := workers.Filter(scl.Idle); !idle.Empty() {
 		return idle
 	}
 
 	// If they're gathering, then it means they're not carrying resources
-	if gathering := workers.Filter(IsGathering); !gathering.Empty() {
+	if gathering := workers.Filter(filter.IsGathering); !gathering.Empty() {
 		return gathering
 	}
 
-	return workers.Filter(IsReturning)
+	return workers.Filter(filter.IsReturning)
 }
 
 // findTurretsNearResourcesNearTownHalls finds all missile turrets near mineral
@@ -101,7 +102,7 @@ func (b *Bot) findTurretsNearResourcesNearTownHalls(resources scl.Units) scl.Uni
 		protoss.PhotonCannon,
 		terran.AutoTurret, terran.MissileTurret,
 		zerg.SpineCrawler, zerg.SporeCrawler,
-	).Filter(CloserThan(scl.ResourceSpreadDistance, resources))
+	).Filter(filter.CloserThan(scl.ResourceSpreadDistance, resources))
 }
 
 // findResourcesNearTownHalls finds all resources near town halls.
@@ -121,7 +122,7 @@ func (b *Bot) findResourcesNearTownHalls(townHalls scl.Units) scl.Units {
 func (b *Bot) findUnsaturatedMineralFieldsNearTownHalls(townHalls scl.Units) scl.Units {
 	mineralFields := b.findMineralFieldsNearTownHalls(townHalls)
 	saturation := b.GetMineralsSaturation(mineralFields)
-	return mineralFields.Filter(IsUnsaturatedMineralField(saturation, 2))
+	return mineralFields.Filter(filter.IsUnsaturatedMineralField(saturation, 2))
 }
 
 // findUnsaturatedVespeneGeysersNearTownHalls finds all unsaturated vespene
@@ -129,7 +130,7 @@ func (b *Bot) findUnsaturatedMineralFieldsNearTownHalls(townHalls scl.Units) scl
 func (b *Bot) findUnsaturatedVespeneGeysersNearTownHalls(townHalls scl.Units) scl.Units {
 	refineries := b.findClaimedVespeneGeysersNearTownHalls(townHalls)
 	saturation := b.GetGasSaturation(refineries)
-	return refineries.Filter(IsUnsaturatedVespeneGeyser(saturation, 3))
+	return refineries.Filter(filter.IsUnsaturatedVespeneGeyser(saturation, 3))
 }
 
 // findUnsaturatedResourcesNearTownHalls finds all unsaturated resources near

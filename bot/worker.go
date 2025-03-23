@@ -1,6 +1,7 @@
-package main
+package bot
 
 import (
+	"github.com/NatoBoram/BlackCompany/log"
 	"github.com/aiseeq/s2l/lib/scl"
 )
 
@@ -16,7 +17,7 @@ func (b *Bot) Workers() {
 		return
 	}
 
-	logger.Info("Sending %d workers back to work", idle.Len())
+	log.Info("Sending %d workers back to work", idle.Len())
 
 	mineralFields := b.findUnsaturatedMineralFieldsNearTownHalls(townHalls)
 	if idle.Exists() && mineralFields.Exists() {

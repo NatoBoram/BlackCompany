@@ -1,9 +1,11 @@
-package main
+package bot
 
 import (
 	"math"
 	"math/rand"
 
+	"github.com/NatoBoram/BlackCompany/filter"
+	"github.com/NatoBoram/BlackCompany/log"
 	"github.com/aiseeq/s2l/lib/point"
 	"github.com/aiseeq/s2l/lib/scl"
 	"github.com/aiseeq/s2l/protocol/api"
@@ -97,14 +99,14 @@ var SupplyDepotStep = BuildStep{
 		scvDuringDepots := uint32(math.Ceil(float64(BuildTimeSupplyDepot) / timeForScv))
 
 		// Don't build if we have enough supply or if already building
-		depotsOrdered := b.findWorkers().Filter(IsOrderedTo(ability.Build_SupplyDepot)).Len() >= 1
-		depotsInProgress := b.Units.My.OfType(terran.SupplyDepot).Filter(IsInProgress).Len() >= 1
+		depotsOrdered := b.findWorkers().Filter(filter.IsOrderedTo(ability.Build_SupplyDepot)).Len() >= 1
+		depotsInProgress := b.Units.My.OfType(terran.SupplyDepot).Filter(filter.IsInProgress).Len() >= 1
 
 		return supplyLeft <= scvDuringDepots && !depotsOrdered && !depotsInProgress
 	},
 
 	Execute: func(b *Bot) {
-		townHalls := b.findTownHalls().Filter(IsCcAtExpansion(b.state.CcForExp))
+		townHalls := b.findTownHalls().Filter(filter.IsCcAtExpansion(b.State.CcForExp))
 		if townHalls.Empty() {
 			return
 		}
@@ -124,7 +126,7 @@ var SupplyDepotStep = BuildStep{
 
 		// Go back to the closest resource after building
 		if resource := b.findResourcesNearTownHalls(townHalls).ClosestTo(pos); resource != nil {
-			logger.Info("Building supply depot at %v and queuing to gather at %v", *pos, resource.Point())
+			log.Info("Building supply depot at %v and queuing to gather at %v", *pos, resource.Point())
 
 			builder.CommandPos(ability.Build_SupplyDepot, pos)
 			builder.CommandTagQueue(ability.Smart, resource.Tag)
@@ -137,7 +139,7 @@ var SupplyDepotStep = BuildStep{
 				b.Miners.GasForMiner[builder.Tag] = resource.Tag
 			}
 		} else {
-			logger.Info("Building supply depot at %v", *pos)
+			log.Info("Building supply depot at %v", *pos)
 			builder.CommandPos(ability.Build_SupplyDepot, pos)
 		}
 
@@ -145,7 +147,7 @@ var SupplyDepotStep = BuildStep{
 	},
 
 	Next: func(b *Bot) bool {
-		return b.Units.My.OfType(terran.SupplyDepot).Len() >= 1 || b.findWorkers().Filter(IsOrderedTo(ability.Build_SupplyDepot)).Exists()
+		return b.Units.My.OfType(terran.SupplyDepot).Len() >= 1 || b.findWorkers().Filter(filter.IsOrderedTo(ability.Build_SupplyDepot)).Exists()
 	},
 }
 
@@ -164,8 +166,8 @@ func buildingStep(name string, buildingId api.UnitTypeID, abilityId api.AbilityI
 			}
 
 			buildings := b.Units.My.OfType(buildingId)
-			ordered := b.findWorkers().Filter(IsOrderedTo(abilityId))
-			inProgress := buildings.Filter(IsInProgress)
+			ordered := b.findWorkers().Filter(filter.IsOrderedTo(abilityId))
+			inProgress := buildings.Filter(filter.IsInProgress)
 			notStarted := ordered.Len() - inProgress.Len()
 			return buildings.Len()+notStarted < quantity
 		},
@@ -176,8 +178,8 @@ func buildingStep(name string, buildingId api.UnitTypeID, abilityId api.AbilityI
 
 		Next: func(b *Bot) bool {
 			buildings := b.Units.My.OfType(buildingId)
-			ordered := b.findWorkers().Filter(IsOrderedTo(abilityId))
-			inProgress := buildings.Filter(IsInProgress)
+			ordered := b.findWorkers().Filter(filter.IsOrderedTo(abilityId))
+			inProgress := buildings.Filter(filter.IsInProgress)
 			notStarted := ordered.Len() - inProgress.Len()
 			return buildings.Len()+notStarted >= quantity
 		},
@@ -193,8 +195,8 @@ func refineryStep(quantity int) *BuildStep {
 			}
 
 			refineries := b.Units.My.OfType(terran.Refinery, terran.RefineryRich)
-			ordered := b.findWorkers().Filter(IsOrderedTo(ability.Build_Refinery))
-			inProgress := refineries.Filter(IsInProgress)
+			ordered := b.findWorkers().Filter(filter.IsOrderedTo(ability.Build_Refinery))
+			inProgress := refineries.Filter(filter.IsInProgress)
 			notStarted := ordered.Len() - inProgress.Len()
 
 			return refineries.Len()+notStarted < quantity
@@ -213,7 +215,7 @@ func refineryStep(quantity int) *BuildStep {
 				return
 			}
 
-			logger.Info("Building refinery at %v", randomVespeneGeyser.Point())
+			log.Info("Building refinery at %v", randomVespeneGeyser.Point())
 			worker.CommandTag(ability.Build_Refinery, randomVespeneGeyser.Tag)
 			worker.CommandTagQueue(ability.Smart, randomVespeneGeyser.Tag)
 			b.DeductResources(ability.Build_Refinery)
@@ -222,8 +224,8 @@ func refineryStep(quantity int) *BuildStep {
 
 		Next: func(b *Bot) bool {
 			refineries := b.Units.My.OfType(terran.Refinery, terran.RefineryRich)
-			ordered := b.findWorkers().Filter(IsOrderedTo(ability.Build_Refinery))
-			inProgress := refineries.Filter(IsInProgress)
+			ordered := b.findWorkers().Filter(filter.IsOrderedTo(ability.Build_Refinery))
+			inProgress := refineries.Filter(filter.IsInProgress)
 			notStarted := ordered.Len() - inProgress.Len()
 			return refineries.Len()+notStarted >= quantity
 		},
@@ -244,9 +246,9 @@ func orbitalCommandStep(quantity int) *BuildStep {
 			}
 
 			orbitalCommands := b.Units.My.OfType(terran.OrbitalCommand, terran.OrbitalCommandFlying)
-			inProgress := b.Units.My.OfType(terran.CommandCenter).Filter(IsOrderedTo(ability.Morph_OrbitalCommand))
+			inProgress := b.Units.My.OfType(terran.CommandCenter).Filter(filter.IsOrderedTo(ability.Morph_OrbitalCommand))
 			if orbitalCommands.Len()+inProgress.Len() >= quantity {
-				b.state.CcForOrbitalCommand = 0
+				b.State.CcForOrbitalCommand = 0
 				return false
 			}
 
@@ -254,7 +256,7 @@ func orbitalCommandStep(quantity int) *BuildStep {
 		},
 
 		Execute: func(b *Bot) {
-			if b.state.CcForOrbitalCommand == 0 {
+			if b.State.CcForOrbitalCommand == 0 {
 				// There's no command center marked for morphing into an orbital
 				// command, so let's mark one
 				commandCenters := b.Units.My.OfType(terran.CommandCenter).Filter(scl.Ready)
@@ -263,18 +265,18 @@ func orbitalCommandStep(quantity int) *BuildStep {
 				}
 
 				randomCommandCenter := commandCenters[rand.Intn(len(commandCenters))]
-				b.state.CcForOrbitalCommand = randomCommandCenter.Tag
+				b.State.CcForOrbitalCommand = randomCommandCenter.Tag
 			}
 
 			// Check if the marked command center is still valid
-			reserved := b.Units.ByTag[b.state.CcForOrbitalCommand]
+			reserved := b.Units.ByTag[b.State.CcForOrbitalCommand]
 			if reserved == nil || !reserved.Is(terran.CommandCenter, terran.CommandCenterFlying) {
-				b.state.CcForOrbitalCommand = 0
+				b.State.CcForOrbitalCommand = 0
 				return
 			}
 
 			// If it's ordered to do anything else, cancel it
-			ordered := IsOrderedTo(ability.Morph_OrbitalCommand)(reserved)
+			ordered := filter.IsOrderedTo(ability.Morph_OrbitalCommand)(reserved)
 			if len(reserved.Orders) > 0 && !ordered {
 				reserved.Command(ability.Cancel_Last)
 				return
@@ -282,16 +284,16 @@ func orbitalCommandStep(quantity int) *BuildStep {
 
 			// If it's not morphing yet, morph it
 			if !ordered {
-				logger.Info("Morphing orbital command at %v", reserved.Point())
+				log.Info("Morphing orbital command at %v", reserved.Point())
 				reserved.Command(ability.Morph_OrbitalCommand)
 				b.DeductResources(ability.Morph_OrbitalCommand)
-				b.state.CcForOrbitalCommand = 0
+				b.State.CcForOrbitalCommand = 0
 			}
 		},
 
 		Next: func(b *Bot) bool {
 			orbitalCommands := b.Units.My.OfType(terran.OrbitalCommand, terran.OrbitalCommandFlying)
-			inProgress := b.Units.My.OfType(terran.CommandCenter).Filter(IsOrderedTo(ability.Morph_OrbitalCommand))
+			inProgress := b.Units.My.OfType(terran.CommandCenter).Filter(filter.IsOrderedTo(ability.Morph_OrbitalCommand))
 			return orbitalCommands.Len()+inProgress.Len() >= quantity
 		},
 	}
@@ -328,26 +330,26 @@ func addonStep(name string, buildingId api.UnitTypeID, addonId api.UnitTypeID, a
 			}
 
 			// If there's no building marked for add-on, mark one
-			if b.state.BuildingForAddOn == 0 {
+			if b.State.BuildingForAddOn == 0 {
 				randomBuilding := buildings[rand.Intn(len(buildings))]
-				b.state.BuildingForAddOn = randomBuilding.Tag
+				b.State.BuildingForAddOn = randomBuilding.Tag
 			}
 
 			// Check if the marked building is still valid
-			reserved := b.Units.ByTag[b.state.BuildingForAddOn]
+			reserved := b.Units.ByTag[b.State.BuildingForAddOn]
 			if reserved == nil || !reserved.Is(buildingId) || reserved.AddOnTag != 0 {
-				b.state.BuildingForAddOn = 0
+				b.State.BuildingForAddOn = 0
 				return
 			}
 
 			// If it's ordered to do anything else, cancel it
-			ordered := IsOrderedTo(abilityId)(reserved)
+			ordered := filter.IsOrderedTo(abilityId)(reserved)
 			if len(reserved.Orders) > 0 && !ordered {
 				reserved.Command(ability.Cancel_Last)
 				return
 			}
 
-			logger.Info("Building %s at %v", name, reserved.Point())
+			log.Info("Building %s at %v", name, reserved.Point())
 			reserved.Command(abilityId)
 
 			// In case it fails, queue the add-on to a new location
@@ -355,7 +357,7 @@ func addonStep(name string, buildingId api.UnitTypeID, addonId api.UnitTypeID, a
 			reserved.CommandPosQueue(abilityId, elsewhere)
 
 			b.DeductResources(abilityId)
-			b.state.BuildingForAddOn = 0
+			b.State.BuildingForAddOn = 0
 		},
 
 		Next: func(b *Bot) bool {
@@ -371,7 +373,7 @@ var TrainMarine = BuildStep{
 	},
 
 	Execute: func(b *Bot) {
-		barracks := b.Units.My.OfType(terran.Barracks).Filter(scl.Ready, scl.Ground, scl.Idle, IsNotTag(b.state.BuildingForAddOn))
+		barracks := b.Units.My.OfType(terran.Barracks).Filter(scl.Ready, scl.Ground, scl.Idle, filter.IsNotTag(b.State.BuildingForAddOn))
 		if barracks.Empty() {
 			return
 		}
@@ -388,13 +390,13 @@ var TrainMarine = BuildStep{
 
 			if amount == 1 {
 				barrack.CommandQueue(ability.Train_Marine)
-				logger.Info("Training one marine at %v", barrack.Point())
+				log.Info("Training one marine at %v", barrack.Point())
 			}
 
 			if amount == 2 {
 				barrack.CommandQueue(ability.Train_Marine)
 				barrack.CommandQueue(ability.Train_Marine)
-				logger.Info("Training two marines at %v", barrack.Point())
+				log.Info("Training two marines at %v", barrack.Point())
 			}
 		}
 	},
@@ -427,7 +429,7 @@ func (b *Bot) amountTrainMarines(barracks *scl.Unit) int {
 }
 
 func (b *Bot) rallyPoint() *point.Point {
-	townHalls := b.findTownHalls().Filter(IsCcAtExpansion(b.state.CcForExp))
+	townHalls := b.findTownHalls().Filter(filter.IsCcAtExpansion(b.State.CcForExp))
 	if townHalls.Empty() {
 		return nil
 	}
@@ -442,7 +444,7 @@ func (b *Bot) build(name string, buildingId api.UnitTypeID, abilityId api.Abilit
 		return
 	}
 
-	townHalls := b.findTownHalls().Filter(IsCcAtExpansion(b.state.CcForExp))
+	townHalls := b.findTownHalls().Filter(filter.IsCcAtExpansion(b.State.CcForExp))
 	if townHalls.Empty() {
 		return
 	}
@@ -460,7 +462,7 @@ func (b *Bot) build(name string, buildingId api.UnitTypeID, abilityId api.Abilit
 	}
 
 	if resource := b.findResourcesNearTownHalls(townHalls).ClosestTo(pos); resource != nil {
-		logger.Info("Building %s at %v and queuing to gather at %v", name, *pos, resource.Point())
+		log.Info("Building %s at %v and queuing to gather at %v", name, *pos, resource.Point())
 
 		builder.CommandPos(abilityId, pos)
 		builder.CommandTagQueue(ability.Smart, resource.Tag)
@@ -473,7 +475,7 @@ func (b *Bot) build(name string, buildingId api.UnitTypeID, abilityId api.Abilit
 			b.Miners.GasForMiner[builder.Tag] = resource.Tag
 		}
 	} else {
-		logger.Info("Building %s at %v", name, *pos)
+		log.Info("Building %s at %v", name, *pos)
 		builder.CommandPos(abilityId, pos)
 	}
 
@@ -492,7 +494,7 @@ func upgradeStep(name string, abilityId api.AbilityID, buildingId api.UnitTypeID
 				return false
 			}
 
-			if b.Units.My.OfType(buildingId).Filter(IsOrderedTo(abilityId)).Exists() {
+			if b.Units.My.OfType(buildingId).Filter(filter.IsOrderedTo(abilityId)).Exists() {
 				return false
 			}
 
@@ -505,7 +507,7 @@ func upgradeStep(name string, abilityId api.AbilityID, buildingId api.UnitTypeID
 				return
 			}
 
-			logger.Info("Researching %s", name)
+			log.Info("Researching %s", name)
 			buildings.First().Command(abilityId)
 			b.DeductResources(abilityId)
 		},
@@ -515,7 +517,7 @@ func upgradeStep(name string, abilityId api.AbilityID, buildingId api.UnitTypeID
 				return true
 			}
 
-			if b.Units.My.OfType(buildingId).Filter(IsOrderedTo(abilityId)).Exists() {
+			if b.Units.My.OfType(buildingId).Filter(filter.IsOrderedTo(abilityId)).Exists() {
 				return true
 			}
 
