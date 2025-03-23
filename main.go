@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"math"
 
+	"github.com/NatoBoram/BlackCompany/bot"
+	"github.com/NatoBoram/BlackCompany/log"
 	"github.com/aiseeq/s2l/lib/point"
 	"github.com/aiseeq/s2l/lib/scl"
 	"github.com/aiseeq/s2l/protocol/api"
@@ -14,12 +15,12 @@ import (
 func main() {
 	env, err := loadEnv()
 	if err != nil {
-		log.Fatalf("failed to load environment variables: %v", err)
+		log.Fatal("failed to load environment variables: %v", err)
 	}
 
 	cfg, err := launch(env)
 	if err != nil {
-		log.Fatalf("failed to launch the game: %v", err)
+		log.Fatal("failed to launch the game: %v", err)
 	}
 
 	runAgent(cfg.Client)
@@ -51,12 +52,12 @@ func launch(env *Env) (*client.GameConfig, error) {
 
 // runAgent creates a bot and runs it.
 func runAgent(c *client.Client) {
-	bot := &Bot{
-		Bot: scl.New(c, OnUnitCreated),
-		state: BotState{
+	bot := &bot.Bot{
+		Bot: scl.New(c, bot.OnUnitCreated),
+		State: bot.BotState{
 			CcForExp:            make(map[api.UnitTag]point.Point),
 			CcForOrbitalCommand: 0,
-			AttackWaves:         AttackWaves{},
+			AttackWaves:         bot.AttackWaves{},
 		},
 	}
 
@@ -76,7 +77,7 @@ func runAgent(c *client.Client) {
 				break
 			}
 
-			logger.Error("An unknown error occurred while stepping: %v", err)
+			log.Error("An unknown error occurred while stepping: %v", err)
 			break
 		}
 

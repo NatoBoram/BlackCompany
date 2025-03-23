@@ -1,4 +1,4 @@
-package main
+package bot
 
 // BuildStep is a step in a build order.
 type BuildStep struct {

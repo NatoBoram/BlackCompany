@@ -1,6 +1,9 @@
-package main
+package bot
 
 import (
+	"github.com/NatoBoram/BlackCompany/filter"
+	"github.com/NatoBoram/BlackCompany/log"
+	"github.com/NatoBoram/BlackCompany/sight"
 	"github.com/aiseeq/s2l/lib/point"
 	"github.com/aiseeq/s2l/lib/scl"
 	"github.com/aiseeq/s2l/protocol/api"
@@ -22,21 +25,21 @@ func (b *Bot) Expand() {
 		}
 		expansion := expansions[i]
 
-		if b.state.CcForExp == nil {
-			b.state.CcForExp = make(map[api.UnitTag]point.Point)
+		if b.State.CcForExp == nil {
+			b.State.CcForExp = make(map[api.UnitTag]point.Point)
 		}
 
 		if !cc.IsFlying && cc.IsReady() {
-			logger.Info("Lifting Command Center from %s to expansion %s", cc.Point(), expansion)
+			log.Info("Lifting Command Center from %s to expansion %s", cc.Point(), expansion)
 			cc.Command(ability.Lift_CommandCenter)
 
-			b.state.CcForExp[cc.Tag] = expansion
+			b.State.CcForExp[cc.Tag] = expansion
 		}
 
 		if cc.IsFlying && cc.IsIdle() {
 			cc.CommandPosQueue(ability.Land_CommandCenter, expansion)
 
-			b.state.CcForExp[cc.Tag] = expansion
+			b.State.CcForExp[cc.Tag] = expansion
 		}
 
 	}
@@ -63,7 +66,7 @@ func (b *Bot) Expand() {
 
 	townHalls := b.findTownHalls()
 	if townHalls.Empty() {
-		logger.Info("No town halls found, building Command Center at expansion %s", expansion)
+		log.Info("No town halls found, building Command Center at expansion %s", expansion)
 		location := b.whereToBuild(expansion, scl.S5x5, terran.CommandCenter, ability.Build_CommandCenter)
 		worker.CommandPos(ability.Build_CommandCenter, location)
 		b.DeductResources(ability.Build_CommandCenter)
@@ -76,7 +79,7 @@ func (b *Bot) Expand() {
 
 	// So do I build it there or near worker then fly it over?
 	if b.isFlyingFaster(worker, location, expansion) {
-		logger.Info("Building Command Center at base %s to fly to expansion %s", location, expansion)
+		log.Info("Building Command Center at base %s to fly to expansion %s", location, expansion)
 
 		worker.CommandPos(ability.Build_CommandCenter, location)
 		b.DeductResources(ability.Build_CommandCenter)
@@ -87,7 +90,7 @@ func (b *Bot) Expand() {
 		return
 	}
 
-	logger.Info("Expanding to %s", expansion)
+	log.Info("Expanding to %s", expansion)
 
 	worker.CommandPos(ability.Build_CommandCenter, expansion)
 	b.DeductResources(ability.Build_CommandCenter)
@@ -104,7 +107,7 @@ func (b *Bot) isFlyingFaster(worker *scl.Unit, base point.Pointer, expansion poi
 	flyTime := b.flyTime(base, terran.CommandCenterFlying, expansion)
 	walkTime := b.walkTime(worker, expansion)
 
-	logger.Debug("Worker travel time: %f, fly time: %f", walkTime, flyTime)
+	log.Debug("Worker travel time: %f, fly time: %f", walkTime, flyTime)
 
 	return flyTime < walkTime
 }
@@ -142,7 +145,7 @@ func (b *Bot) hasFreeCommandCenter() scl.Units {
 
 	mineralFields := b.Units.Minerals.All()
 	for _, cc := range commandCenters {
-		hasMineralFields := mineralFields.CloserThan(scl.ResourceSpreadDistance, cc).Filter(SameHeightAs(cc)).Exists()
+		hasMineralFields := mineralFields.CloserThan(scl.ResourceSpreadDistance, cc).Filter(filter.SameHeightAs(cc)).Exists()
 		if !hasMineralFields {
 			free = append(free, cc)
 		}
@@ -163,7 +166,7 @@ func (b *Bot) findExpansionLocations() point.Points {
 		}
 
 		// Skip locations that would be unsafe
-		if b.Enemies.Visible.Filter(scl.DpsGt5).CloserThan(LineOfSightScannerSweep.Float64(), expansion).Exists() {
+		if b.Enemies.Visible.Filter(scl.DpsGt5).CloserThan(sight.LineOfSightScannerSweep.Float64(), expansion).Exists() {
 			continue
 		}
 
@@ -193,12 +196,12 @@ func (b *Bot) shouldExpand() bool {
 		return false
 	}
 
-	ccOrdered := b.findWorkers().Filter(IsOrderedTo(ability.Build_CommandCenter)).Len() >= 1
+	ccOrdered := b.findWorkers().Filter(filter.IsOrderedTo(ability.Build_CommandCenter)).Len() >= 1
 	if ccOrdered {
 		return false
 	}
 
-	ccInProgress := b.Units.My.OfType(terran.CommandCenter).Filter(IsInProgress).Len() >= 1
+	ccInProgress := b.Units.My.OfType(terran.CommandCenter).Filter(filter.IsInProgress).Len() >= 1
 	if ccInProgress {
 		return false
 	}

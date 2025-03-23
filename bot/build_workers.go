@@ -1,6 +1,8 @@
-package main
+package bot
 
 import (
+	"github.com/NatoBoram/BlackCompany/filter"
+	"github.com/NatoBoram/BlackCompany/log"
 	"github.com/aiseeq/s2l/lib/scl"
 	"github.com/aiseeq/s2l/protocol/enums/ability"
 	"github.com/aiseeq/s2l/protocol/enums/terran"
@@ -39,7 +41,7 @@ func (b *Bot) BuildWorker() {
 		return
 	}
 
-	idleTownHalls := townHalls.Filter(scl.Ready, scl.Idle, IsCcAtExpansion(b.state.CcForExp))
+	idleTownHalls := townHalls.Filter(scl.Ready, scl.Idle, filter.IsCcAtExpansion(b.State.CcForExp))
 	if idleTownHalls.Empty() {
 		return
 	}
@@ -51,9 +53,9 @@ func (b *Bot) BuildWorker() {
 
 		// Ignore command centers that are reserved for morphing into an orbital
 		// command.
-		if b.state.CcForOrbitalCommand == cc.Tag {
+		if b.State.CcForOrbitalCommand == cc.Tag {
 			if cc.Is(terran.OrbitalCommand, terran.OrbitalCommandFlying) {
-				b.state.CcForOrbitalCommand = 0
+				b.State.CcForOrbitalCommand = 0
 			} else {
 				continue
 			}
@@ -62,8 +64,8 @@ func (b *Bot) BuildWorker() {
 		var resource *scl.Unit
 
 		resourcesNearby := resources.CloserThan(scl.ResourceSpreadDistance, cc)
-		nearbyRefineries := resourcesNearby.Filter(HasGas)
-		nearbyMineralFields := resourcesNearby.Filter(HasMinerals)
+		nearbyRefineries := resourcesNearby.Filter(filter.HasGas)
+		nearbyMineralFields := resourcesNearby.Filter(filter.HasMinerals)
 		if nearbyMineralFields.Exists() && nearbyRefineries.Exists() {
 			if (nearbyMineralFields.Len()*2)/(nearbyRefineries.Len()*3) >= 16/6 {
 				resource = nearbyRefineries.ClosestTo(cc)
@@ -74,7 +76,7 @@ func (b *Bot) BuildWorker() {
 			resource = resources.ClosestTo(cc)
 		}
 
-		logger.Info("Training SCV for resource %v", resource.Point())
+		log.Info("Training SCV for resource %v", resource.Point())
 		cc.CommandTag(ability.Rally_CommandCenter, resource.Tag)
 		cc.CommandQueue(ability.Train_SCV)
 		b.DeductResources(ability.Train_SCV)

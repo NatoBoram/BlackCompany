@@ -1,11 +1,11 @@
 package main
 
 import (
-	"log"
 	"os/exec"
 	"path"
 	"strconv"
 
+	"github.com/NatoBoram/BlackCompany/log"
 	"github.com/aiseeq/s2l/protocol/api"
 	"github.com/aiseeq/s2l/protocol/client"
 )
@@ -25,7 +25,7 @@ func launchProton(paths *Sc2Paths, flags Flags) error {
 	}
 
 	if flags.Realtime {
-		log.Println("Running StarCraft II in real-time")
+		log.Info("Running StarCraft II in real-time")
 		args = append(args, "-realtime", strconv.FormatBool(flags.Realtime))
 		client.SetRealtime()
 	}
@@ -54,7 +54,7 @@ func launchProton(paths *Sc2Paths, flags Flags) error {
 
 	go func() {
 		if err := cmd.Run(); err != nil {
-			log.Fatalf("failed to run StarCraft II: %v", err)
+			log.Fatal("failed to run StarCraft II: %v", err)
 		}
 	}()
 
@@ -64,7 +64,7 @@ func launchProton(paths *Sc2Paths, flags Flags) error {
 func protonConfig(bot *api.PlayerSetup, participants ...*api.PlayerSetup) *client.GameConfig {
 	mapPath := random1v1Map()
 
-	logger.Info("Using map %q\n", mapPath)
+	log.Info("Using map %q\n", mapPath)
 
 	client.SetMap(mapPath)
 

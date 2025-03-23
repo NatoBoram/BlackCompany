@@ -1,9 +1,11 @@
-package main
+package bot
 
 import (
 	"math"
 	"slices"
 
+	"github.com/NatoBoram/BlackCompany/filter"
+	"github.com/NatoBoram/BlackCompany/log"
 	"github.com/aiseeq/s2l/lib/point"
 	"github.com/aiseeq/s2l/lib/scl"
 	"github.com/aiseeq/s2l/protocol/api"
@@ -78,19 +80,19 @@ func (b *Bot) isValidBuildPosition(pos point.Point, size scl.BuildingSize, build
 
 	// Get nearby resources
 	mineralField := b.Units.Minerals.All().
-		CloserThan(scl.ResourceSpreadDistance, pos).Filter(HasMinerals).ClosestTo(pos)
+		CloserThan(scl.ResourceSpreadDistance, pos).Filter(filter.HasMinerals).ClosestTo(pos)
 
 	vespineGeyser := b.Units.Geysers.All().
-		CloserThan(scl.ResourceSpreadDistance, pos).Filter(HasGas).ClosestTo(pos)
+		CloserThan(scl.ResourceSpreadDistance, pos).Filter(filter.HasGas).ClosestTo(pos)
 
 	gas := b.Units.My.OfType(
 		protoss.Assimilator, protoss.AssimilatorRich,
 		terran.Refinery, terran.RefineryRich,
 		zerg.Extractor, zerg.ExtractorRich,
 	).
-		CloserThan(scl.ResourceSpreadDistance, pos).Filter(HasGas).ClosestTo(pos)
+		CloserThan(scl.ResourceSpreadDistance, pos).Filter(filter.HasGas).ClosestTo(pos)
 
-	resource := scl.Units{mineralField, vespineGeyser, gas}.Filter(IsNotNil).ClosestTo(pos)
+	resource := scl.Units{mineralField, vespineGeyser, gas}.Filter(filter.IsNotNil).ClosestTo(pos)
 
 	townHall := b.Units.My.OfType(
 		protoss.Nexus,
@@ -118,7 +120,7 @@ func (b *Bot) isValidBuildPosition(pos point.Point, size scl.BuildingSize, build
 	isTouchy := slices.Contains(touchyBuildings, buildingType)
 
 	// Check all buildings near the target position
-	myBuildings := b.Units.MyAll.Filter(IsStructure)
+	myBuildings := b.Units.MyAll.Filter(filter.IsStructure)
 
 	// Collect touching building types. Ignores own type.
 	touchingTypes := make(map[api.UnitTypeID]bool)
@@ -216,7 +218,7 @@ func buildingToSize(u *scl.Unit) scl.BuildingSize {
 		return scl.S5x5
 
 	default:
-		logger.Info("Unknown building size for %q: %f", u.UnitType, u.Radius)
+		log.Info("Unknown building size for %q: %f", u.UnitType, u.Radius)
 	}
 
 	return 0

@@ -1,8 +1,11 @@
-package main
+package bot
 
 import (
 	"math/rand"
 
+	"github.com/NatoBoram/BlackCompany/filter"
+	"github.com/NatoBoram/BlackCompany/log"
+	"github.com/NatoBoram/BlackCompany/sight"
 	"github.com/aiseeq/s2l/lib/point"
 	"github.com/aiseeq/s2l/lib/scl"
 	"github.com/aiseeq/s2l/protocol/enums/ability"
@@ -70,10 +73,10 @@ func (a *AttackWave) Recenter(b *Bot, units scl.Units) scl.Units {
 
 	center := units.Center()
 	for _, u := range units {
-		if u.Dist(center) > LineOfSightScannerSweep.Float64() {
-			dest := center.Towards(u, LineOfSightScannerSweep.Float64()-1)
+		if u.Dist(center) > sight.LineOfSightScannerSweep.Float64() {
+			dest := center.Towards(u, sight.LineOfSightScannerSweep.Float64()-1)
 
-			if IsNotOrderedToTarget(ability.Move, dest)(u) {
+			if filter.IsNotOrderedToTarget(ability.Move, dest)(u) {
 				u.CommandPos(ability.Move, dest)
 			}
 
@@ -91,7 +94,7 @@ func (a *AttackWave) Advance(b *Bot, units scl.Units) scl.Units {
 	}
 
 	for _, u := range units {
-		if IsNotOrderedToTarget(ability.Attack, a.Target)(u) {
+		if filter.IsNotOrderedToTarget(ability.Attack, a.Target)(u) {
 			u.CommandPos(ability.Attack, a.Target)
 		}
 
@@ -105,7 +108,7 @@ func (a *AttackWave) Advance(b *Bot, units scl.Units) scl.Units {
 func (a *AttackWave) UpdateTarget(b *Bot) {
 	center := a.Units(b).Center()
 	dist := a.Target.Dist(center)
-	if dist > LineOfSightScannerSweep.Float64() {
+	if dist > sight.LineOfSightScannerSweep.Float64() {
 		return
 	}
 
@@ -117,8 +120,8 @@ func (a *AttackWave) UpdateTarget(b *Bot) {
 	if buildings.Exists() {
 		target := buildings.ClosestTo(center).Point()
 
-		if target.Dist(a.Target) > LineOfSightScannerSweep.Float64() {
-			logger.Info("Switching target to a building at %v", target)
+		if target.Dist(a.Target) > sight.LineOfSightScannerSweep.Float64() {
+			log.Info("Switching target to a building at %v", target)
 		}
 
 		a.Target = target
@@ -131,8 +134,8 @@ func (a *AttackWave) UpdateTarget(b *Bot) {
 	if units.Exists() {
 		target := units.ClosestTo(center).Point()
 
-		if target.Dist(a.Target) > LineOfSightScannerSweep.Float64() {
-			logger.Info("Switching target to a unit at %v", target)
+		if target.Dist(a.Target) > sight.LineOfSightScannerSweep.Float64() {
+			log.Info("Switching target to a unit at %v", target)
 		}
 
 		a.Target = target
@@ -142,8 +145,8 @@ func (a *AttackWave) UpdateTarget(b *Bot) {
 	// Expansions are obvious choices for building locations
 	target := b.Locs.EnemyExps[rand.Intn(len(b.Locs.EnemyExps))]
 
-	if target.Dist(a.Target) > LineOfSightScannerSweep.Float64() {
-		logger.Info("Switching target to an enemy expansion at %v", target)
+	if target.Dist(a.Target) > sight.LineOfSightScannerSweep.Float64() {
+		log.Info("Switching target to an enemy expansion at %v", target)
 	}
 
 	a.Target = target
@@ -151,9 +154,9 @@ func (a *AttackWave) UpdateTarget(b *Bot) {
 
 // AttackWaves handles attack waves.
 func (b *Bot) AttackWaves() {
-	keepWaves := make(AttackWaves, 0, len(b.state.AttackWaves))
+	keepWaves := make(AttackWaves, 0, len(b.State.AttackWaves))
 
-	for _, wave := range b.state.AttackWaves {
+	for _, wave := range b.State.AttackWaves {
 		units := wave.Trim(b)
 		if units.Empty() {
 			continue
@@ -163,5 +166,5 @@ func (b *Bot) AttackWaves() {
 		keepWaves = append(keepWaves, wave)
 	}
 
-	b.state.AttackWaves = keepWaves
+	b.State.AttackWaves = keepWaves
 }
