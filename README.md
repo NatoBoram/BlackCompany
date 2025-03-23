@@ -4,7 +4,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/NatoBoram/BlackCompany)](https://goreportcard.com/report/github.com/NatoBoram/BlackCompany)
 [![Go Reference](https://pkg.go.dev/badge/github.com/NatoBoram/BlackCompany.svg)](https://pkg.go.dev/github.com/NatoBoram/BlackCompany)
 
-🚧 Starting a StarCraft II bot
+BlackCompany is a StarCraft II bot written in Go.
 
 ## Dependencies
 
