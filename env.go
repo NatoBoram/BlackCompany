@@ -27,13 +27,13 @@ type Env struct {
 	// STEAM_COMPAT_CLIENT_INSTALL_PATH is the path to the installation of Steam
 	// itself.
 	//
-	// Exemple: $HOME/.steam/debian-installation
+	// Example: $HOME/.steam/debian-installation
 	STEAM_COMPAT_CLIENT_INSTALL_PATH string
 
 	// STEAM_COMPAT_DATA_PATH is the path to the non-Steam game's "compatdata"
 	// directory inside of "steamapps".
 	//
-	// Exemple: $HOME/.steam/debian-installation/steamapps/compatdata/3430940832
+	// Example: $HOME/.steam/debian-installation/steamapps/compatdata/3430940832
 	STEAM_COMPAT_DATA_PATH string
 }
 
