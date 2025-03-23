@@ -7,11 +7,16 @@ import (
 // Workers handles idle workers
 func (b *Bot) Workers() {
 	idle := b.findWorkers().Filter(scl.Idle)
+	if idle.Empty() {
+		return
+	}
 
 	townHalls := b.findTownHalls()
 	if townHalls.Empty() {
 		return
 	}
+
+	logger.Info("Sending %d workers back to work", idle.Len())
 
 	mineralFields := b.findUnsaturatedMineralFieldsNearTownHalls(townHalls)
 	if idle.Exists() && mineralFields.Exists() {

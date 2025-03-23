@@ -2,7 +2,6 @@ package main
 
 import (
 	"math/rand"
-	"slices"
 
 	"github.com/aiseeq/s2l/lib/point"
 	"github.com/aiseeq/s2l/lib/scl"
@@ -16,7 +15,7 @@ type AttackWave struct {
 	Target point.Point
 }
 
-type AttackWaves []*AttackWave
+type AttackWaves []AttackWave
 
 func (a AttackWaves) Units(b *Bot) scl.Units {
 	count := 0
@@ -34,6 +33,10 @@ func (a AttackWaves) Units(b *Bot) scl.Units {
 
 // Units gets the units in an attack wave
 func (a *AttackWave) Units(b *Bot) scl.Units {
+	if b.Units.MyAll.Empty() {
+		b.Units.MyAll = make(scl.Units, 0)
+	}
+
 	return b.Units.MyAll.ByTags(a.Tags)
 }
 
@@ -69,7 +72,11 @@ func (a *AttackWave) Recenter(b *Bot, units scl.Units) scl.Units {
 	for _, u := range units {
 		if u.Dist(center) > LineOfSightScannerSweep.Float64() {
 			dest := center.Towards(u, LineOfSightScannerSweep.Float64()-1)
-			u.CommandPos(ability.Move, dest)
+
+			if IsNotOrderedToTarget(ability.Move, dest)(u) {
+				u.CommandPos(ability.Move, dest)
+			}
+
 			units.Remove(u)
 		}
 	}
@@ -84,7 +91,10 @@ func (a *AttackWave) Advance(b *Bot, units scl.Units) scl.Units {
 	}
 
 	for _, u := range units {
-		u.CommandPos(ability.Attack, a.Target)
+		if IsNotOrderedToTarget(ability.Attack, a.Target)(u) {
+			u.CommandPos(ability.Attack, a.Target)
+		}
+
 		units.Remove(u)
 	}
 
@@ -141,14 +151,17 @@ func (a *AttackWave) UpdateTarget(b *Bot) {
 
 // AttackWaves handles attack waves.
 func (b *Bot) AttackWaves() {
-	for i, wave := range b.state.AttackWaves {
+	keepWaves := make(AttackWaves, 0, len(b.state.AttackWaves))
+
+	for _, wave := range b.state.AttackWaves {
 		units := wave.Trim(b)
 		if units.Empty() {
-			b.state.AttackWaves = slices.Delete(b.state.AttackWaves, i, i+1)
-			i--
 			continue
 		}
 
 		wave.Step(b)
+		keepWaves = append(keepWaves, wave)
 	}
+
+	b.state.AttackWaves = keepWaves
 }

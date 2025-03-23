@@ -4,6 +4,7 @@ import (
 	"math"
 	"math/rand"
 
+	"github.com/aiseeq/s2l/lib/point"
 	"github.com/aiseeq/s2l/lib/scl"
 	"github.com/aiseeq/s2l/protocol/api"
 	"github.com/aiseeq/s2l/protocol/enums/ability"
@@ -42,8 +43,19 @@ var Standard = Strategy{
 		// Medivac (x4)
 		// Siege Tank (x2)
 		upgradeStep("Infantry Armor Level 1", ability.Research_TerranInfantryArmorLevel1, terran.EngineeringBay),
+
 		// At this point, we should have enough units to launch a bigger attack.
-		attackWaveStep(firstWaveConfig()), // TODO: Update to a second wave
+		// TODO: Update to a second wave
+		// These are just in the meantime
+		attackWaveStep(firstWaveConfig()),
+		upgradeStep("Infantry Weapons Level 2", ability.Research_TerranInfantryWeaponsLevel2, terran.EngineeringBay),
+		upgradeStep("Infantry Armor Level 2", ability.Research_TerranInfantryArmorLevel2, terran.EngineeringBay),
+		attackWaveStep(firstWaveConfig()),
+		upgradeStep("Infantry Weapons Level 3", ability.Research_TerranInfantryWeaponsLevel3, terran.EngineeringBay),
+		upgradeStep("Infantry Armor Level 3", ability.Research_TerranInfantryArmorLevel3, terran.EngineeringBay),
+		attackWaveStep(firstWaveConfig()),
+
+		attackWaveStep(fullSupplyWaveConfig()),
 	},
 }
 
@@ -66,14 +78,18 @@ var SupplyDepotStep = BuildStep{
 			return false
 		}
 
-		// Check if we have town halls
-		townHalls := b.findTownHalls().Filter(IsCcAtExpansion(b.state.CcForExp))
-		if townHalls.Empty() {
+		townHalls := b.findTownHalls()
+		production := b.findProductionStructures()
+
+		structures := make(scl.Units, 0, len(townHalls)+len(production))
+		structures = append(structures, townHalls...)
+		structures = append(structures, production...)
+		if structures.Empty() {
 			return false
 		}
 
 		// Calculate how much supply we'll use during depot construction
-		timeForScv := float64(BuildTimeSCV) / float64(townHalls.Len())
+		timeForScv := float64(BuildTimeSCV) / float64(structures.Len())
 		scvDuringDepots := uint32(math.Ceil(float64(BuildTimeSupplyDepot) / timeForScv))
 
 		// Don't build if we have enough supply or if already building
@@ -357,43 +373,64 @@ var TrainMarine = BuildStep{
 		}
 
 		for _, barrack := range barracks {
-			if !b.CanBuy(ability.Train_Marine) {
+			amount := b.amountTrainMarines(barrack)
+			if amount == 0 {
 				break
 			}
 
-			barrack.Command(ability.Train_Marine)
-			b.DeductResources(ability.Train_Marine)
-
-			if barrack.AddOnTag == 0 {
-				logger.Info("Training marine at %v", barrack.Point())
-				continue
+			if rally := b.rallyPoint(); rally != nil {
+				barrack.CommandPos(ability.Rally_Building, rally)
 			}
 
-			addon := b.Units.ByTag[barrack.AddOnTag]
-			if addon == nil {
-				logger.Info("Training marine at %v", barrack.Point())
-				continue
+			if amount == 1 {
+				barrack.CommandQueue(ability.Train_Marine)
+				logger.Info("Training one marine at %v", barrack.Point())
 			}
 
-			if !addon.Is(terran.BarracksReactor) {
-				logger.Info("Training marine at %v", barrack.Point())
-				continue
+			if amount == 2 {
+				barrack.CommandQueue(ability.Train_Marine)
+				barrack.CommandQueue(ability.Train_Marine)
+				logger.Info("Training two marines at %v", barrack.Point())
 			}
-
-			if !b.CanBuy(ability.Train_Marine) {
-				logger.Info("Training marine at %v", barrack.Point())
-				break
-			}
-
-			barrack.CommandQueue(ability.Train_Marine)
-			b.DeductResources(ability.Train_Marine)
-			logger.Info("Training two marines at %v", barrack.Point())
 		}
 	},
 
 	Next: func(b *Bot) bool {
 		return true
 	},
+}
+
+func (b *Bot) amountTrainMarines(barracks *scl.Unit) int {
+	if !b.CanBuy(ability.Train_Marine) {
+		return 0
+	}
+
+	// Confirmed that we're about to train one marine.
+	b.DeductResources(ability.Train_Marine)
+
+	if barracks.AddOnTag == 0 {
+		return 1
+	}
+
+	addon := b.Units.ByTag[barracks.AddOnTag]
+	if addon == nil || !addon.Is(terran.BarracksReactor) || !b.CanBuy(ability.Train_Marine) {
+		return 1
+	}
+
+	// Confirmed that we're about to train two marines.
+	b.DeductResources(ability.Train_Marine)
+	return 2
+}
+
+func (b *Bot) rallyPoint() *point.Point {
+	townHalls := b.findTownHalls()
+	if townHalls.Empty() {
+		return nil
+	}
+
+	closest := townHalls.ClosestTo(b.Locs.EnemyStart)
+	rally := closest.Towards(b.Locs.EnemyStart, closest.SightRange())
+	return &rally
 }
 
 func (b *Bot) build(name string, buildingId api.UnitTypeID, abilityId api.AbilityID, size scl.BuildingSize) {
@@ -464,6 +501,7 @@ func upgradeStep(name string, abilityId api.AbilityID, buildingId api.UnitTypeID
 				return
 			}
 
+			logger.Info("Researching %s", name)
 			buildings.First().Command(abilityId)
 			b.DeductResources(abilityId)
 		},

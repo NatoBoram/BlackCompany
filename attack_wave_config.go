@@ -39,7 +39,7 @@ func firstWaveConfig() *AttackWaveConfig {
 				return
 			}
 
-			wave := &AttackWave{
+			wave := AttackWave{
 				Tags:   marines.Tags(),
 				Target: b.Locs.EnemyStart,
 			}
@@ -47,6 +47,30 @@ func firstWaveConfig() *AttackWaveConfig {
 
 			launched = true
 			logger.Info("Sending %d marines to enemy base %v", marines.Len(), b.Locs.EnemyStart)
+		},
+	}
+}
+
+func fullSupplyWaveConfig() *AttackWaveConfig {
+	return &AttackWaveConfig{
+		Name: "Full Supply Attack Wave",
+		Predicate: func(b *Bot) bool {
+			marines := b.Units.My.OfType(terran.Marine).Filter(scl.Ready, NotIn(b.state.AttackWaves.Units(b)))
+			return b.Obs.PlayerCommon.FoodUsed >= 200 && marines.Len() >= 10
+		},
+		Execute: func(b *Bot) {
+			marines := b.Units.My.OfType(terran.Marine).Filter(scl.Ready, NotIn(b.state.AttackWaves.Units(b)))
+			if marines.Empty() {
+				return
+			}
+
+			wave := AttackWave{
+				Tags:   marines.Tags(),
+				Target: marines.Center(),
+			}
+
+			b.state.AttackWaves = append(b.state.AttackWaves, wave)
+			logger.Info("Preparing new attack wave with %d units", marines.Len())
 		},
 	}
 }

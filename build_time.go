@@ -6,6 +6,7 @@ type BuildTime uint
 
 const (
 	BuildTimeCommandCenter BuildTime = 71
+	BuildTimeMarine        BuildTime = 25
 	BuildTimeSCV           BuildTime = 12
 	BuildTimeSupplyDepot   BuildTime = 40
 )

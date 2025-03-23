@@ -106,6 +106,35 @@ func IsOrderedTo(ability api.AbilityID) scl.Filter {
 	}
 }
 
+// IsOrderedToTarget filters units that are currently ordered to use a specific
+// ability to a specific coordinate.
+func IsOrderedToTarget(ability api.AbilityID, target point.Point) scl.Filter {
+	return func(u *scl.Unit) bool {
+		if len(u.Orders) <= 0 {
+			return false
+		}
+
+		for _, order := range u.Orders {
+			orderPos := order.GetTargetWorldSpacePos()
+			orderPoint := point.Pt3(orderPos)
+
+			if order.AbilityId == ability && orderPoint.Dist(target) < 1 {
+				return true
+			}
+		}
+
+		return false
+	}
+}
+
+// IsNotOrderedToTarget filters units that are not currently ordered to use a
+// specific ability to a specific coordinate.
+func IsNotOrderedToTarget(ability api.AbilityID, target point.Point) scl.Filter {
+	return func(u *scl.Unit) bool {
+		return !IsOrderedToTarget(ability, target)(u)
+	}
+}
+
 func IsOrderedToAny(abilities ...api.AbilityID) scl.Filter {
 	return func(u *scl.Unit) bool {
 		if len(u.Orders) <= 0 {
@@ -300,6 +329,8 @@ func SameHeightAs(u *scl.Unit) scl.Filter {
 	}
 }
 
+// IsCcAtExpansion checks if a command center is at its designated expansion
+// location. Useful to exclude bases that need to be flown to their expansion.
 func IsCcAtExpansion(ccForExp map[api.UnitTag]point.Point) scl.Filter {
 	return func(u *scl.Unit) bool {
 		expansion, ok := ccForExp[u.Tag]
