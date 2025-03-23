@@ -201,14 +201,11 @@ func (b *Bot) areBuildingsTouching(building1 *scl.Unit, building2 *scl.Unit) boo
 //
 // See https://pkg.go.dev/github.com/aiseeq/s2l@v0.0.0-20210823112249-9c133fcb6b25/lib/scl#Bot.ParseUnits
 func buildingToSize(u *scl.Unit) scl.BuildingSize {
-	pos := u.Point()
-
 	switch {
 	case u.Radius <= 1:
 		return 0
 
 	case u.Radius >= 1.125 && u.Radius <= 1.25:
-		pos -= point.Pt(1, 1)
 		return scl.S2x2
 
 	case u.Radius > 1.25 && u.Radius < 2.75:
@@ -218,7 +215,7 @@ func buildingToSize(u *scl.Unit) scl.BuildingSize {
 		return scl.S5x5
 
 	default:
-		log.Info("Unknown building size for %q: %f", u.UnitType, u.Radius)
+		log.Warn("No size for building %q: %f", u.UnitType, u.Radius)
 	}
 
 	return 0
