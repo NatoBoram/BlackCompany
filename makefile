@@ -8,3 +8,6 @@ slow:
 fast:
 	clear
 	go run ./... -- -realtime false -windowwidth 1280 -windowheight 720
+
+clean:
+	rm -f BlackCompany BlackCompany.exe BlackCompany.zip vendor
