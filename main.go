@@ -24,7 +24,10 @@ func main() {
 		log.Fatal("failed to launch the game: %v", err)
 	}
 
-	runAgent(cfg.Client)
+	flags := loadFlags()
+	if flags.Replay == "" {
+		runAgent(cfg.Client)
+	}
 }
 
 // launch launches the game. It'll check for PROTON_PATH before launching the
@@ -34,15 +37,19 @@ func launch(env *Env) (*client.GameConfig, error) {
 	cpu := client.NewComputer(api.Race_Random, api.Difficulty_Hard, api.AIBuild_RandomBuild)
 
 	if env.PROTON_PATH != "" && env.STEAM_COMPAT_DATA_PATH != "" {
+		flags := loadFlags()
+
 		paths, err := sc2Paths(env)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get StarCraft II paths: %w", err)
 		}
 
-		flags := loadFlags()
-
 		if err = launchProton(paths, flags); err != nil {
 			return nil, fmt.Errorf("failed to launch StarCraft II using Proton: %w", err)
+		}
+
+		if flags.Replay != "" && flags.Map != "" {
+			return replayConfig(flags)
 		}
 
 		return protonConfig(bot, cpu), nil

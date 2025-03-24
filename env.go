@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"os"
 	"path"
+	"slices"
 	"testing"
 
 	"github.com/joho/godotenv"
@@ -152,6 +153,8 @@ func sc2Paths(env *Env) (*Sc2Paths, error) {
 }
 
 // maps2024Season4 is the map pool for the 2024 Season 4 ladder.
+//
+// https://aiarena.net/wiki/maps/#wiki-toc-sc2-ai-arena-2024-season-4
 var maps2024Season4 = []string{
 	"AbyssalReefAIE",
 	"AcropolisAIE",
@@ -161,8 +164,20 @@ var maps2024Season4 = []string{
 	"ThunderbirdAIE",
 }
 
+// maps2024Season2 is the map pool for the 2024 Season 2 ladder.
+//
+// https://aiarena.net/wiki/maps/#wiki-toc-sc2-ai-arena-2024-season-2-version-2
+var maps2024Season2 = []string{
+	"Equilibrium513AIE",
+	"GoldenAura513AIE",
+	"Gresvan513AIE",
+	"HardLead513AIE",
+	"Oceanborn513AIE",
+	"SiteDelta513AIE",
+}
+
 // random1v1Map returns a random map name from the current 1v1 ladder map pool.
 func random1v1Map() string {
-	currentMaps := maps2024Season4
-	return currentMaps[rand.Intn(len(currentMaps))] + ".SC2Map"
+	allMaps := slices.Concat(maps2024Season2, maps2024Season4)
+	return allMaps[rand.Intn(len(allMaps))] + ".SC2Map"
 }

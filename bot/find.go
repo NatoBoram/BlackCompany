@@ -1,6 +1,8 @@
 package bot
 
 import (
+	"slices"
+
 	"github.com/NatoBoram/BlackCompany/filter"
 	"github.com/aiseeq/s2l/lib/scl"
 	"github.com/aiseeq/s2l/protocol/enums/protoss"
@@ -109,12 +111,7 @@ func (b *Bot) findTurretsNearResourcesNearTownHalls(resources scl.Units) scl.Uni
 func (b *Bot) findResourcesNearTownHalls(townHalls scl.Units) scl.Units {
 	mineralFields := b.findMineralFieldsNearTownHalls(townHalls)
 	refineries := b.findClaimedVespeneGeysersNearTownHalls(townHalls)
-
-	resources := make(scl.Units, 0, len(mineralFields)+len(refineries))
-	resources = append(resources, mineralFields...)
-	resources = append(resources, refineries...)
-
-	return resources
+	return slices.Concat(mineralFields, refineries)
 }
 
 // findUnsaturatedMineralFieldsNearTownHalls finds all unsaturated mineral
@@ -139,9 +136,5 @@ func (b *Bot) findUnsaturatedResourcesNearTownHalls(townHalls scl.Units) scl.Uni
 	mineralFields := b.findUnsaturatedMineralFieldsNearTownHalls(townHalls)
 	vespeneGeysers := b.findUnsaturatedVespeneGeysersNearTownHalls(townHalls)
 
-	resources := make(scl.Units, 0, len(mineralFields)+len(vespeneGeysers))
-	resources = append(resources, mineralFields...)
-	resources = append(resources, vespeneGeysers...)
-
-	return resources
+	return slices.Concat(mineralFields, vespeneGeysers)
 }

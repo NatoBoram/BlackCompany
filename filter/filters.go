@@ -2,6 +2,7 @@ package filter
 
 import (
 	"math"
+	"slices"
 
 	"github.com/aiseeq/s2l/lib/point"
 	"github.com/aiseeq/s2l/lib/scl"
@@ -245,10 +246,7 @@ func IsGatheringOrReturning(u *scl.Unit) bool {
 
 	gathering := ToKeys(scl.GatheringAbilities)
 	returning := ToKeys(scl.ReturningAbilities)
-
-	abilities := make([]api.AbilityID, 0, len(gathering)+len(returning))
-	abilities = append(abilities, gathering...)
-	abilities = append(abilities, returning...)
+	abilities := slices.Concat(gathering, returning)
 
 	return IsOrderedToAny(abilities...)(u) || HasAnyTargetAbility(abilities)(u)
 }

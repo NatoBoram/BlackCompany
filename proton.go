@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os/exec"
 	"path"
 	"strconv"
@@ -74,4 +75,51 @@ func protonConfig(bot *api.PlayerSetup, participants ...*api.PlayerSetup) *clien
 	config.StartGame(mapPath)
 
 	return config
+}
+
+func replayConfig(flags Flags) (*client.GameConfig, error) {
+	if flags.Replay == "" {
+		log.Fatal("no replay file provided")
+	}
+
+	if flags.Map == "" {
+		log.Fatal("no map provided")
+	}
+
+	client.SetMap(flags.Map + ".SC2Map")
+
+	observer := client.NewParticipant(api.Race_NoRace, "Observer")
+	config := client.NewGameConfig(observer)
+	config.Connect(8168)
+
+	replayPath := path.Join("C:\\Program Files (x86)\\StarCraft II\\Replays", flags.Replay)
+
+	request := &api.Request{Request: &api.Request_StartReplay{
+		StartReplay: &api.RequestStartReplay{
+			Replay: &api.RequestStartReplay_ReplayPath{
+				ReplayPath: replayPath,
+			},
+			ObservedPlayerId: 1,
+			Options: &api.InterfaceOptions{
+				Raw:   true,
+				Score: true,
+			},
+			DisableFog: false,
+			Realtime:   false,
+		},
+	}}
+
+	response, err := config.Client.Request(request)
+	if err != nil {
+		return nil, fmt.Errorf("failed to start replay: %w", err)
+	}
+
+	if response.GetStartReplay().GetError() != api.ResponseStartReplay_nil {
+		return nil, fmt.Errorf("failed to start replay. Error: %v, Details: %v",
+			response.GetStartReplay().GetError(),
+			response.GetStartReplay().GetErrorDetails(),
+		)
+	}
+
+	return config, nil
 }

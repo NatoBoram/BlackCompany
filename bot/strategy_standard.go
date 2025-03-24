@@ -3,6 +3,7 @@ package bot
 import (
 	"math"
 	"math/rand"
+	"slices"
 
 	"github.com/NatoBoram/BlackCompany/filter"
 	"github.com/NatoBoram/BlackCompany/log"
@@ -87,9 +88,7 @@ var SupplyDepotStep = BuildStep{
 		townHalls := b.findTownHalls()
 		production := b.findProductionStructures()
 
-		structures := make(scl.Units, 0, len(townHalls)+len(production))
-		structures = append(structures, townHalls...)
-		structures = append(structures, production...)
+		structures := slices.Concat(townHalls, production)
 		if structures.Empty() {
 			return false
 		}

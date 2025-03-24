@@ -44,6 +44,12 @@ type Flags struct {
 
 	// Timeout for how long the library will block for a response.
 	Timeout time.Duration
+
+	// Replay is the path to a replay file.
+	Replay string
+
+	// Map is the name of a map to load.
+	Map string
 }
 
 func loadFlags() Flags {
@@ -58,6 +64,8 @@ func loadFlags() Flags {
 	flags.WindowX = flagInt(parsed, "windowx", 0)
 	flags.WindowY = flagInt(parsed, "windowy", 0)
 	flags.Listen = flagString(parsed, "listen", "127.0.0.1")
+	flags.Replay = flagString(parsed, "replay", "")
+	flags.Map = flagString(parsed, "map", "")
 
 	twoMinutes, _ := time.ParseDuration("2m")
 	flags.Timeout = flagDuration(parsed, "timeout", twoMinutes)
