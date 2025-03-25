@@ -7,6 +7,7 @@ import (
 	"github.com/NatoBoram/BlackCompany/filter"
 	"github.com/NatoBoram/BlackCompany/log"
 	"github.com/NatoBoram/BlackCompany/sight"
+	"github.com/aiseeq/s2l/lib/point"
 	"github.com/aiseeq/s2l/lib/scl"
 	"github.com/aiseeq/s2l/protocol/enums/ability"
 )
@@ -40,7 +41,7 @@ func handleAttackWave(b *bot.Bot, a *bot.AttackWave) {
 		return
 	}
 
-	units = recenterWave(units)
+	units = recenterWave(units, a.Target)
 	advanceWave(a, units)
 
 	updateWaveTarget(b, a)
@@ -48,22 +49,30 @@ func handleAttackWave(b *bot.Bot, a *bot.AttackWave) {
 
 // recenterWave moves units that are too far from the wave towards the center of
 // the unit group.
-func recenterWave(units scl.Units) scl.Units {
+func recenterWave(units scl.Units, target point.Point) scl.Units {
 	if units.Empty() {
 		return units
 	}
 
 	center := units.Center()
-	for _, u := range units {
-		if u.Dist(center) > sight.LineOfSightScannerSweep.Float64() {
-			dest := center.Towards(u, sight.LineOfSightScannerSweep.Float64()-1)
+	decentered := units.FurtherThan(sight.LineOfSightScannerSweep.Float64(), center)
+	if decentered.Empty() {
+		return units
+	}
 
-			if filter.IsNotOrderedToTarget(ability.Move, dest)(u) {
-				u.CommandPos(ability.Move, dest)
-			}
+	if float64(decentered.Len()) <= float64(units.Len())*0.2 {
+		return units
+	}
 
-			units.Remove(u)
+	towards := center.Towards(target, 1)
+
+	log.Info("Recentering %d units", decentered.Len())
+	for _, unit := range units {
+		if filter.IsNotOrderedToTarget(ability.Move, towards)(unit) {
+			unit.CommandPos(ability.Move, towards)
 		}
+
+		units.Remove(unit)
 	}
 
 	return units
@@ -96,6 +105,18 @@ func updateWaveTarget(b *bot.Bot, a *bot.AttackWave) {
 
 	// It's too close to the target, let's find an enemy unit then target it
 	enemies := b.Units.Enemy.All()
+
+	// If someone's at home, gotta defend it!
+	cluster := b.FindEnemyClusterAtHome()
+	if cluster.Exists() {
+		target := cluster.Center()
+		if target.Dist(a.Target) > sight.LineOfSightScannerSweep.Float64() {
+			log.Info("Switching target to defend base at %v", target)
+		}
+
+		a.Target = target
+		return
+	}
 
 	// Destroy all buildings to win the game
 	buildings := enemies.Filter(scl.Structure)

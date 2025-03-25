@@ -48,15 +48,6 @@ func (b *Bot) Step() {
 	b.ParseData()
 
 	b.ExecuteStrategy(&Standard)
-
-	b.Cmds.Process(&b.Actions)
-	if len(b.Actions) > 0 {
-		if _, err := b.Client.Action(api.RequestAction{Actions: b.Actions}); err != nil {
-			log.Info("Failed to send actions: %v", err)
-		}
-
-		b.Actions = nil
-	}
 }
 
 // Observe fetches the current observation from the game.

@@ -39,6 +39,18 @@ STEAM_COMPAT_DATA_PATH="$HOME/.steam/debian-installation/steamapps/compatdata/34
 
 Go to [Map Packs](https://github.com/Blizzard/s2client-proto?tab=readme-ov-file#map-packs), download all the maps and extract them in `$SC2PATH/Maps` using the password `iagreetotheeula`.
 
+## Run
+
+There's a `Makefile` to help you run the bot.
+
+```sh
+# Runs the game in real-time
+make slow
+
+# Runs the game as fast as possible
+make fast
+```
+
 ## Resources
 
 These resources massively helped me kickstart bot development.

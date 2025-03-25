@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"math"
-	"runtime/debug"
 
 	"github.com/NatoBoram/BlackCompany/bot"
 	"github.com/NatoBoram/BlackCompany/log"
@@ -76,17 +75,20 @@ func runAgent(c *client.Client) {
 	stop := make(chan struct{})
 	bot.Init(stop)
 
-	// Print version information for everyone to enjoy
-	info, ok := debug.ReadBuildInfo()
-	if ok {
-		message := fmt.Sprintf("BlackCompany %s", info.Main.Version)
-		bot.Actions.ChatSend(message, api.ActionChat_Team)
-	}
-
 	bot.Observe()
 	for bot.Client.Status == api.Status_in_game {
 		bot.Step()
 		micro.Step(bot)
+
+		// Once a step is done, send it to the game
+		bot.Cmds.Process(&bot.Actions)
+		if len(bot.Actions) > 0 {
+			if _, err := bot.Client.Action(api.RequestAction{Actions: bot.Actions}); err != nil {
+				log.Warn("Failed to send actions: %v", err)
+			}
+
+			bot.Actions = nil
+		}
 
 		step := api.RequestStep{Count: uint32(bot.FramesPerOrder)}
 		if _, err := bot.Client.Step(step); err != nil {

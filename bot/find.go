@@ -4,7 +4,9 @@ import (
 	"slices"
 
 	"github.com/NatoBoram/BlackCompany/filter"
+	"github.com/NatoBoram/BlackCompany/sight"
 	"github.com/aiseeq/s2l/lib/scl"
+	"github.com/aiseeq/s2l/protocol/api"
 	"github.com/aiseeq/s2l/protocol/enums/protoss"
 	"github.com/aiseeq/s2l/protocol/enums/terran"
 	"github.com/aiseeq/s2l/protocol/enums/zerg"
@@ -137,4 +139,31 @@ func (b *Bot) FindUnsaturatedResourcesNearTownHalls(townHalls scl.Units) scl.Uni
 	vespeneGeysers := b.FindUnsaturatedVespeneGeysersNearTownHalls(townHalls)
 
 	return slices.Concat(mineralFields, vespeneGeysers)
+}
+
+// FindEnemiesInBases finds enemies in range of bases. Bases are all buildings
+// in sight of eachother, starting with the town hall.
+func (b *Bot) FindEnemiesInBases() map[api.UnitTag]scl.Units {
+	bases := b.FindTownHalls().Filter(filter.IsCcAtExpansion(b.State.CcForExp))
+	enemiesInBases := make(map[api.UnitTag]scl.Units, len(bases))
+
+	for _, base := range bases {
+		buildings := scl.Units{base}
+		enemies := b.Units.Enemy.All().CloserThan(base.SightRange(), base)
+
+		for _, building := range buildings {
+			buildingsInSight := b.Units.MyAll.
+				Filter(scl.Structure, filter.NotIn(buildings)).
+				CloserThan(building.SightRange(), building)
+
+			buildings = append(buildings, buildingsInSight...)
+
+			enemiesInRange := b.Units.Enemy.All().CloserThan(sight.LineOfSightScannerSweep.Float64(), building)
+			enemies = append(enemies, enemiesInRange...)
+		}
+
+		enemiesInBases[base.Tag] = enemies
+	}
+
+	return enemiesInBases
 }
