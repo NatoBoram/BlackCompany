@@ -7,6 +7,7 @@ import (
 
 	"github.com/NatoBoram/BlackCompany/bot"
 	"github.com/NatoBoram/BlackCompany/log"
+	"github.com/NatoBoram/BlackCompany/micro"
 	"github.com/aiseeq/s2l/lib/point"
 	"github.com/aiseeq/s2l/lib/scl"
 	"github.com/aiseeq/s2l/protocol/api"
@@ -85,6 +86,7 @@ func runAgent(c *client.Client) {
 	bot.Observe()
 	for bot.Client.Status == api.Status_in_game {
 		bot.Step()
+		micro.Step(bot)
 
 		step := api.RequestStep{Count: uint32(bot.FramesPerOrder)}
 		if _, err := bot.Client.Step(step); err != nil {

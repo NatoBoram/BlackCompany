@@ -8,12 +8,12 @@ import (
 
 // acknowledgeMiners saves metadata about miners.
 func (b *Bot) acknowledgeMiners() {
-	townHalls := b.findTownHalls().Filter(filter.IsCcAtExpansion(b.State.CcForExp))
+	townHalls := b.FindTownHalls().Filter(filter.IsCcAtExpansion(b.State.CcForExp))
 	if townHalls.Empty() {
 		return
 	}
 
-	miners := b.findMiners()
+	miners := b.FindMiners()
 	if miners.Empty() {
 		return
 	}
@@ -45,7 +45,7 @@ func (b *Bot) acknowledgeMiners() {
 	// Now let's do the MineralForMiner. For each mineral field, if there's a
 	// miner gathering from it, then we put it in `MineralForMiner` and we delete
 	// it from `GasForMiner`.
-	mineralFields := b.findMineralFieldsNearTownHalls(townHalls)
+	mineralFields := b.FindMineralFieldsNearTownHalls(townHalls)
 	for _, mf := range mineralFields {
 		for _, miner := range miners.Filter(filter.HasTargetTag(mf.Tag)) {
 			b.Miners.MineralForMiner[miner.Tag] = mf.Tag
@@ -56,7 +56,7 @@ func (b *Bot) acknowledgeMiners() {
 		}
 	}
 
-	vespeneGeysers := b.findClaimedVespeneGeysersNearTownHalls(townHalls)
+	vespeneGeysers := b.FindClaimedVespeneGeysersNearTownHalls(townHalls)
 	for _, gas := range vespeneGeysers {
 		for _, miner := range miners.Filter(filter.HasTargetTag(gas.Tag)) {
 			b.Miners.GasForMiner[miner.Tag] = gas.Tag

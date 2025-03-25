@@ -47,12 +47,7 @@ func (b *Bot) Step() {
 
 	b.ParseData()
 
-	b.BuildWorker()
-	b.Expand()
-
 	b.ExecuteStrategy(&Standard)
-	b.AttackWaves()
-	b.Workers()
 
 	b.Cmds.Process(&b.Actions)
 	if len(b.Actions) > 0 {
@@ -105,7 +100,7 @@ func (b *Bot) ParseData() {
 	b.DetectEnemyRace()
 
 	if !b.miningInitialized {
-		townHalls := b.findTownHalls()
+		townHalls := b.FindTownHalls()
 		resources := b.findResourcesNearTownHalls(townHalls)
 		turrets := b.findTurretsNearResourcesNearTownHalls(resources)
 		b.InitMining(filter.ToPoints(turrets))

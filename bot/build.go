@@ -15,7 +15,7 @@ import (
 )
 
 // whereToBuild finds a valid position to place a building of the given size.
-func (b *Bot) whereToBuild(start point.Point, size scl.BuildingSize, buildingType api.UnitTypeID, ability api.AbilityID) *point.Point {
+func (b *Bot) WhereToBuild(start point.Point, size scl.BuildingSize, buildingType api.UnitTypeID, ability api.AbilityID) *point.Point {
 	// maxDist is roughly the maximum size of a typical base. At which point, we
 	// should probably just build somewhere else...
 	const maxDist = 30.0
