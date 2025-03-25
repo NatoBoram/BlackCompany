@@ -4,14 +4,16 @@ import (
 	"slices"
 
 	"github.com/NatoBoram/BlackCompany/filter"
+	"github.com/NatoBoram/BlackCompany/sight"
 	"github.com/aiseeq/s2l/lib/scl"
+	"github.com/aiseeq/s2l/protocol/api"
 	"github.com/aiseeq/s2l/protocol/enums/protoss"
 	"github.com/aiseeq/s2l/protocol/enums/terran"
 	"github.com/aiseeq/s2l/protocol/enums/zerg"
 )
 
 // findMineralFieldsNearTownHalls finds all mineral fields near town halls.
-func (b *Bot) findMineralFieldsNearTownHalls(townHalls scl.Units) scl.Units {
+func (b *Bot) FindMineralFieldsNearTownHalls(townHalls scl.Units) scl.Units {
 	mineralFields := make(scl.Units, 0, len(townHalls)*8)
 	for _, th := range townHalls {
 		ccMineralFields := b.Units.Minerals.All().CloserThan(th.SightRange(), th).Filter(filter.HasMinerals)
@@ -23,7 +25,7 @@ func (b *Bot) findMineralFieldsNearTownHalls(townHalls scl.Units) scl.Units {
 
 // findClaimedVespeneGeysersNearTownHalls finds all vespene geysers near town
 // halls.
-func (b *Bot) findClaimedVespeneGeysersNearTownHalls(townHalls scl.Units) scl.Units {
+func (b *Bot) FindClaimedVespeneGeysersNearTownHalls(townHalls scl.Units) scl.Units {
 	refineries := make(scl.Units, 0, len(townHalls)*2)
 	for _, th := range townHalls {
 		ccRefineries := b.Units.My.OfType(
@@ -52,7 +54,7 @@ func (b *Bot) findVespeneGeysersNearTownHalls(townHalls scl.Units) scl.Units {
 }
 
 // findTownHalls finds all structures capable of training workers and miners.
-func (b *Bot) findTownHalls() scl.Units {
+func (b *Bot) FindTownHalls() scl.Units {
 	return b.Units.My.OfType(
 		protoss.Nexus,
 		terran.CommandCenter, terran.OrbitalCommand, terran.PlanetaryFortress,
@@ -71,19 +73,19 @@ func (b *Bot) findProductionStructures() scl.Units {
 }
 
 // findMiners finds all units capable of mining resources.
-func (b *Bot) findMiners() scl.Units {
+func (b *Bot) FindMiners() scl.Units {
 	return b.Units.My.OfType(protoss.Probe, terran.MULE, terran.SCV, zerg.Drone)
 }
 
 // findWorkers finds all units capable of building structures.
-func (b *Bot) findWorkers() scl.Units {
+func (b *Bot) FindWorkers() scl.Units {
 	return b.Units.My.OfType(protoss.Probe, terran.SCV, zerg.Drone)
 }
 
 // findIdleOrGatheringWorkers finds idle or gathering workers that are not
 // currently building a structure.
-func (b *Bot) findIdleOrGatheringWorkers() scl.Units {
-	workers := b.findWorkers().Filter(filter.IsNotBuilding)
+func (b *Bot) FindIdleOrGatheringWorkers() scl.Units {
+	workers := b.FindWorkers().Filter(filter.IsNotBuilding)
 
 	if idle := workers.Filter(scl.Idle); !idle.Empty() {
 		return idle
@@ -109,32 +111,59 @@ func (b *Bot) findTurretsNearResourcesNearTownHalls(resources scl.Units) scl.Uni
 
 // findResourcesNearTownHalls finds all resources near town halls.
 func (b *Bot) findResourcesNearTownHalls(townHalls scl.Units) scl.Units {
-	mineralFields := b.findMineralFieldsNearTownHalls(townHalls)
-	refineries := b.findClaimedVespeneGeysersNearTownHalls(townHalls)
+	mineralFields := b.FindMineralFieldsNearTownHalls(townHalls)
+	refineries := b.FindClaimedVespeneGeysersNearTownHalls(townHalls)
 	return slices.Concat(mineralFields, refineries)
 }
 
 // findUnsaturatedMineralFieldsNearTownHalls finds all unsaturated mineral
 // fields near town halls
-func (b *Bot) findUnsaturatedMineralFieldsNearTownHalls(townHalls scl.Units) scl.Units {
-	mineralFields := b.findMineralFieldsNearTownHalls(townHalls)
+func (b *Bot) FindUnsaturatedMineralFieldsNearTownHalls(townHalls scl.Units) scl.Units {
+	mineralFields := b.FindMineralFieldsNearTownHalls(townHalls)
 	saturation := b.GetMineralsSaturation(mineralFields)
 	return mineralFields.Filter(filter.IsUnsaturatedMineralField(saturation, 2))
 }
 
 // findUnsaturatedVespeneGeysersNearTownHalls finds all unsaturated vespene
 // geysers near town halls
-func (b *Bot) findUnsaturatedVespeneGeysersNearTownHalls(townHalls scl.Units) scl.Units {
-	refineries := b.findClaimedVespeneGeysersNearTownHalls(townHalls)
+func (b *Bot) FindUnsaturatedVespeneGeysersNearTownHalls(townHalls scl.Units) scl.Units {
+	refineries := b.FindClaimedVespeneGeysersNearTownHalls(townHalls)
 	saturation := b.GetGasSaturation(refineries)
 	return refineries.Filter(filter.IsUnsaturatedVespeneGeyser(saturation, 3))
 }
 
 // findUnsaturatedResourcesNearTownHalls finds all unsaturated resources near
 // town halls.
-func (b *Bot) findUnsaturatedResourcesNearTownHalls(townHalls scl.Units) scl.Units {
-	mineralFields := b.findUnsaturatedMineralFieldsNearTownHalls(townHalls)
-	vespeneGeysers := b.findUnsaturatedVespeneGeysersNearTownHalls(townHalls)
+func (b *Bot) FindUnsaturatedResourcesNearTownHalls(townHalls scl.Units) scl.Units {
+	mineralFields := b.FindUnsaturatedMineralFieldsNearTownHalls(townHalls)
+	vespeneGeysers := b.FindUnsaturatedVespeneGeysersNearTownHalls(townHalls)
 
 	return slices.Concat(mineralFields, vespeneGeysers)
+}
+
+// FindEnemiesInBases finds enemies in range of bases. Bases are all buildings
+// in sight of eachother, starting with the town hall.
+func (b *Bot) FindEnemiesInBases() map[api.UnitTag]scl.Units {
+	bases := b.FindTownHalls().Filter(filter.IsCcAtExpansion(b.State.CcForExp))
+	enemiesInBases := make(map[api.UnitTag]scl.Units, len(bases))
+
+	for _, base := range bases {
+		buildings := scl.Units{base}
+		enemies := b.Units.Enemy.All().CloserThan(base.SightRange(), base)
+
+		for _, building := range buildings {
+			buildingsInSight := b.Units.MyAll.
+				Filter(scl.Structure, filter.NotIn(buildings)).
+				CloserThan(building.SightRange(), building)
+
+			buildings = append(buildings, buildingsInSight...)
+
+			enemiesInRange := b.Units.Enemy.All().CloserThan(sight.LineOfSightScannerSweep.Float64(), building)
+			enemies = append(enemies, enemiesInRange...)
+		}
+
+		enemiesInBases[base.Tag] = enemies
+	}
+
+	return enemiesInBases
 }

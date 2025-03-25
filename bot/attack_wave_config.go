@@ -58,7 +58,7 @@ func fullSupplyWaveConfig() *AttackWaveConfig {
 		Name: "Full Supply Attack Wave",
 		Predicate: func(b *Bot) bool {
 			marines := b.Units.My.OfType(terran.Marine).Filter(scl.Ready, filter.NotIn(b.State.AttackWaves.Units(b)))
-			return b.Obs.PlayerCommon.FoodUsed >= 200 && marines.Len() >= 10
+			return b.Obs.PlayerCommon.FoodUsed >= b.Obs.PlayerCommon.FoodCap && marines.Len() >= 30
 		},
 		Execute: func(b *Bot) {
 			marines := b.Units.My.OfType(terran.Marine).Filter(scl.Ready, filter.NotIn(b.State.AttackWaves.Units(b)))

@@ -75,8 +75,8 @@ func IsUnsaturatedVespeneGeyser(saturation map[api.UnitTag]int, target int) scl.
 // least one unit in the list
 func CloserThan(distance float64, units scl.Units) scl.Filter {
 	return func(unit *scl.Unit) bool {
-		for _, resource := range units {
-			if unit.IsCloserThan(distance, resource) {
+		for _, target := range units {
+			if unit.IsCloserThan(distance, target) {
 				return true
 			}
 		}
@@ -342,8 +342,15 @@ func IsNotTag(tag api.UnitTag) scl.Filter {
 	}
 }
 
+// NotIn returns units that are not in the list.
 func NotIn(units scl.Units) scl.Filter {
 	return func(u *scl.Unit) bool {
 		return units.ByTag(u.Tag) == nil
+	}
+}
+
+func InSightOf(target *scl.Unit) scl.Filter {
+	return func(unit *scl.Unit) bool {
+		return unit.IsCloserThan(target.SightRange(), target)
 	}
 }
