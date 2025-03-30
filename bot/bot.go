@@ -102,3 +102,27 @@ func (b *Bot) ParseData() {
 
 	b.FindClusters() // Not used yet
 }
+
+func (b *Bot) InitState() {
+	b.initCcForExp()
+}
+
+func (b *Bot) initCcForExp() {
+	if b.State.CcForExp == nil {
+		b.State.CcForExp = make(map[api.UnitTag]point.Point)
+	}
+
+	townHalls := b.FindTownHalls()
+	if townHalls.Empty() {
+		log.Warn("Couldn't initialize CcForExp because there are no town halls.")
+		return
+	}
+
+	expansions := append(b.Locs.MyExps, b.Locs.MyStart)
+	for _, expansion := range expansions {
+		townHall := townHalls.ClosestTo(expansion)
+		if townHall.IsCloserThan(1, expansion) {
+			b.State.CcForExp[townHall.Tag] = expansion
+		}
+	}
+}

@@ -36,19 +36,27 @@ func expand(b *bot.Bot) {
 		}
 		expansion := expansions[i]
 
-		if b.State.CcForExp == nil {
-			b.State.CcForExp = make(map[api.UnitTag]point.Point)
-		}
-
 		if !cc.IsFlying && cc.IsReady() {
-			log.Info("Lifting Command Center from %s to expansion %s", cc.Point(), expansion)
-			cc.Command(ability.Lift_CommandCenter)
+			if cc.Is(terran.CommandCenter) {
+				log.Info("Lifting Command Center from %s to expansion %s", cc.Point(), expansion)
+				cc.Command(ability.Lift_CommandCenter)
+			}
+
+			if cc.Is(terran.OrbitalCommand) {
+				log.Info("Lifting Orbital Command from %s to expansion %s", cc.Point(), expansion)
+				cc.Command(ability.Lift_OrbitalCommand)
+			}
 
 			b.State.CcForExp[cc.Tag] = expansion
 		}
 
 		if cc.IsFlying && cc.IsIdle() {
-			cc.CommandPosQueue(ability.Land_CommandCenter, expansion)
+			if cc.Is(terran.CommandCenterFlying) {
+				cc.CommandPosQueue(ability.Land_CommandCenter, expansion)
+			}
+			if cc.Is(terran.OrbitalCommandFlying) {
+				cc.CommandPosQueue(ability.Land_OrbitalCommand, expansion)
+			}
 
 			b.State.CcForExp[cc.Tag] = expansion
 		}
@@ -146,33 +154,29 @@ func flyTime(b *bot.Bot, origin point.Pointer, unit api.UnitTypeID, destination 
 // hasFreeCommandCenter checks if there's a command center that's not at an
 // expansion location that we can use to expand by lifting it.
 func hasFreeCommandCenter(b *bot.Bot) scl.Units {
-	commandCenters := b.Units.My.OfType(terran.CommandCenter, terran.OrbitalCommand)
-	flying := b.Units.My.OfType(terran.CommandCenterFlying, terran.OrbitalCommandFlying)
-	free := make(scl.Units, 0, commandCenters.Len()+flying.Len())
-
-	if flying.Exists() {
-		free = append(free, flying...)
-	}
-
-	mineralFields := b.Units.Minerals.All()
-	for _, cc := range commandCenters {
-		hasMineralFields := mineralFields.CloserThan(scl.ResourceSpreadDistance, cc).Filter(filter.SameHeightAs(cc)).Exists()
-		if !hasMineralFields {
-			free = append(free, cc)
-		}
-	}
-
-	return free
+	return b.Units.My.
+		OfType(
+			terran.CommandCenter, terran.OrbitalCommand,
+			terran.CommandCenterFlying, terran.OrbitalCommandFlying,
+		).
+		Filter(
+			filter.IsNotCcAtExpansion(b.State.CcForExp),
+			filter.IsNotOrderedToAny(
+				ability.Lift, ability.Lift_CommandCenter, ability.Lift_OrbitalCommand,
+				ability.Land, ability.Land_CommandCenter, ability.Land_OrbitalCommand,
+			),
+		)
 }
 
 // findExpansionLocation finds the next best available expansion location.
 func findExpansionLocations(b *bot.Bot) point.Points {
-	locations := make(point.Points, 0, b.Locs.MyExps.Len())
+	locations := make(point.Points, 0, b.Locs.MyExps.Len()+1)
+	expansions := append(b.Locs.MyExps, b.Locs.MyStart)
+	townHalls := b.FindTownHalls()
 
-	for _, expansion := range b.Locs.MyExps {
+	for _, expansion := range expansions {
 		// Skip existing expansions
-		if b.FindTownHalls().
-			CloserThan(scl.ResourceSpreadDistance, expansion).Exists() {
+		if townHalls.CloserThan(scl.ResourceSpreadDistance, expansion).Exists() {
 			continue
 		}
 

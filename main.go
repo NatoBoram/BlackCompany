@@ -74,6 +74,7 @@ func runAgent(c *client.Client) {
 
 	stop := make(chan struct{})
 	bot.Init(stop)
+	bot.InitState()
 
 	bot.Observe()
 	for bot.Client.Status == api.Status_in_game {

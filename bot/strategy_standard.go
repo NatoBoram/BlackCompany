@@ -312,7 +312,9 @@ func orbitalCommandStep(quantity int) *BuildStep {
 			if b.State.CcForOrbitalCommand == 0 {
 				// There's no command center marked for morphing into an orbital
 				// command, so let's mark one
-				commandCenters := b.Units.My.OfType(terran.CommandCenter).Filter(scl.Ready)
+				commandCenters := b.Units.My.
+					OfType(terran.CommandCenter).
+					Filter(scl.Ready, filter.IsCcAtExpansion(b.State.CcForExp))
 				if commandCenters.Empty() {
 					return
 				}

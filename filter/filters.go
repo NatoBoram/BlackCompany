@@ -196,6 +196,22 @@ func IsOrderedToAny(abilities ...api.AbilityID) scl.Filter {
 	}
 }
 
+func IsNotOrderedToAny(abilities ...api.AbilityID) scl.Filter {
+	return func(u *scl.Unit) bool {
+		if len(u.Orders) <= 0 {
+			return true
+		}
+
+		for _, ability := range abilities {
+			if IsOrderedTo(ability)(u) {
+				return false
+			}
+		}
+
+		return true
+	}
+}
+
 // HasTargetTag filters units that are targeting a specific unit
 func HasTargetTag(tag api.UnitTag) scl.Filter {
 	return func(u *scl.Unit) bool {
@@ -376,7 +392,16 @@ func SameHeightAs(u *scl.Unit) scl.Filter {
 func IsCcAtExpansion(ccForExp map[api.UnitTag]point.Point) scl.Filter {
 	return func(u *scl.Unit) bool {
 		expansion, ok := ccForExp[u.Tag]
-		return !ok || expansion.Dist(u) < 1
+		return ok && expansion.Dist(u) < 1
+	}
+}
+
+// IsNotCcAtExpansion filters command centers that are not at their designated
+// expansion location.
+func IsNotCcAtExpansion(ccForExp map[api.UnitTag]point.Point) scl.Filter {
+	return func(u *scl.Unit) bool {
+		expansion, ok := ccForExp[u.Tag]
+		return !ok || expansion.Dist(u) >= 1
 	}
 }
 
