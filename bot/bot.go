@@ -47,21 +47,7 @@ func (b *Bot) Step() {
 
 	b.ParseData()
 
-	b.BuildWorker()
-	b.Expand()
-
 	b.ExecuteStrategy(&Standard)
-	b.AttackWaves()
-	b.Workers()
-
-	b.Cmds.Process(&b.Actions)
-	if len(b.Actions) > 0 {
-		if _, err := b.Client.Action(api.RequestAction{Actions: b.Actions}); err != nil {
-			log.Info("Failed to send actions: %v", err)
-		}
-
-		b.Actions = nil
-	}
 }
 
 // Observe fetches the current observation from the game.
@@ -105,7 +91,7 @@ func (b *Bot) ParseData() {
 	b.DetectEnemyRace()
 
 	if !b.miningInitialized {
-		townHalls := b.findTownHalls()
+		townHalls := b.FindTownHalls()
 		resources := b.findResourcesNearTownHalls(townHalls)
 		turrets := b.findTurretsNearResourcesNearTownHalls(resources)
 		b.InitMining(filter.ToPoints(turrets))
@@ -115,4 +101,28 @@ func (b *Bot) ParseData() {
 	}
 
 	b.FindClusters() // Not used yet
+}
+
+func (b *Bot) InitState() {
+	b.initCcForExp()
+}
+
+func (b *Bot) initCcForExp() {
+	if b.State.CcForExp == nil {
+		b.State.CcForExp = make(map[api.UnitTag]point.Point)
+	}
+
+	townHalls := b.FindTownHalls()
+	if townHalls.Empty() {
+		log.Warn("Couldn't initialize CcForExp because there are no town halls.")
+		return
+	}
+
+	expansions := append(b.Locs.MyExps, b.Locs.MyStart)
+	for _, expansion := range expansions {
+		townHall := townHalls.ClosestTo(expansion)
+		if townHall.IsCloserThan(1, expansion) {
+			b.State.CcForExp[townHall.Tag] = expansion
+		}
+	}
 }

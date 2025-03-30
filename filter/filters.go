@@ -75,12 +75,15 @@ func IsUnsaturatedVespeneGeyser(saturation map[api.UnitTag]int, target int) scl.
 // least one unit in the list
 func CloserThan(distance float64, units scl.Units) scl.Filter {
 	return func(unit *scl.Unit) bool {
-		for _, resource := range units {
-			if unit.IsCloserThan(distance, resource) {
-				return true
-			}
-		}
-		return false
+		return units.CloserThan(distance, unit).Exists()
+	}
+}
+
+// NotCloserThan returns a filter that selects units that are not closer than
+// the specified distance to any unit in the given set.
+func NotCloserThan(distance float64, units scl.Units) scl.Filter {
+	return func(unit *scl.Unit) bool {
+		return units.CloserThan(distance, unit).Empty()
 	}
 }
 
@@ -128,6 +131,47 @@ func IsOrderedToTarget(ability api.AbilityID, target point.Point) scl.Filter {
 	}
 }
 
+func IsOrderedToTag(ability api.AbilityID, tag api.UnitTag) scl.Filter {
+	return func(u *scl.Unit) bool {
+		if len(u.Orders) <= 0 {
+			return false
+		}
+
+		for _, order := range u.Orders {
+			if order.AbilityId == ability && order.GetTargetUnitTag() == tag {
+				return true
+			}
+		}
+
+		return false
+	}
+}
+
+// IsNotOrderedOnTag filters units that aren't being ordered to something by
+// other units.
+//
+// For example, to check that no workers in that list are ordered to build a
+// refinery on that vespene geyser, you would do:
+//
+//	geysers.Filter(filter.IsNotOrderedOnTag(ability.Build_Refinery, workers))
+func IsNotOrderedOnTag(ability api.AbilityID, units scl.Units) scl.Filter {
+	return func(target *scl.Unit) bool {
+		for _, unit := range units {
+			if len(unit.Orders) <= 0 {
+				continue
+			}
+
+			for _, order := range unit.Orders {
+				if order.AbilityId == ability && order.GetTargetUnitTag() == target.Tag {
+					return false
+				}
+			}
+		}
+
+		return true
+	}
+}
+
 // IsNotOrderedToTarget filters units that are not currently ordered to use a
 // specific ability to a specific coordinate.
 func IsNotOrderedToTarget(ability api.AbilityID, target point.Point) scl.Filter {
@@ -149,6 +193,22 @@ func IsOrderedToAny(abilities ...api.AbilityID) scl.Filter {
 		}
 
 		return false
+	}
+}
+
+func IsNotOrderedToAny(abilities ...api.AbilityID) scl.Filter {
+	return func(u *scl.Unit) bool {
+		if len(u.Orders) <= 0 {
+			return true
+		}
+
+		for _, ability := range abilities {
+			if IsOrderedTo(ability)(u) {
+				return false
+			}
+		}
+
+		return true
 	}
 }
 
@@ -332,7 +392,16 @@ func SameHeightAs(u *scl.Unit) scl.Filter {
 func IsCcAtExpansion(ccForExp map[api.UnitTag]point.Point) scl.Filter {
 	return func(u *scl.Unit) bool {
 		expansion, ok := ccForExp[u.Tag]
-		return !ok || expansion.Dist(u) < 1
+		return ok && expansion.Dist(u) < 1
+	}
+}
+
+// IsNotCcAtExpansion filters command centers that are not at their designated
+// expansion location.
+func IsNotCcAtExpansion(ccForExp map[api.UnitTag]point.Point) scl.Filter {
+	return func(u *scl.Unit) bool {
+		expansion, ok := ccForExp[u.Tag]
+		return !ok || expansion.Dist(u) >= 1
 	}
 }
 
@@ -342,8 +411,15 @@ func IsNotTag(tag api.UnitTag) scl.Filter {
 	}
 }
 
+// NotIn returns units that are not in the list.
 func NotIn(units scl.Units) scl.Filter {
 	return func(u *scl.Unit) bool {
 		return units.ByTag(u.Tag) == nil
+	}
+}
+
+func InSightOf(target *scl.Unit) scl.Filter {
+	return func(unit *scl.Unit) bool {
+		return unit.IsCloserThan(target.SightRange(), target)
 	}
 }

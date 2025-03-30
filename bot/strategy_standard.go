@@ -1,8 +1,10 @@
 package bot
 
 import (
+	"fmt"
 	"math"
 	"math/rand"
+	"runtime/debug"
 	"slices"
 
 	"github.com/NatoBoram/BlackCompany/filter"
@@ -17,7 +19,9 @@ import (
 var Standard = Strategy{
 	Name: "Standard",
 	Steps: BuildOrder{
-		&SupplyDepotStep,
+		&defenseWaveStep,
+		&supplyDepotStep,
+		chatVersionStep(),
 		buildingStep("Barracks", terran.Barracks, ability.Build_Barracks, 1, terran.SupplyDepot),
 		refineryStep(1),
 		orbitalCommandStep(1),
@@ -25,8 +29,9 @@ var Standard = Strategy{
 		// TODO: Turn Expand() into a step and insert it here. It is extremely funny
 		// to see it continuously create command centers at home and send them
 		// flying.
-		// buildingStep("Command Center", terran.CommandCenter, ability.Build_CommandCenter, 2),
-		&TrainMarine,
+		townHallStep(terran.CommandCenter, ability.Build_CommandCenter, 2),
+		&trainMarine,
+		attackWaveStep(fullSupplyWaveConfig()),
 		buildingStep("Barracks", terran.Barracks, ability.Build_Barracks, 3, terran.SupplyDepot),
 		orbitalCommandStep(2),
 		addonStep("Barracks Tech Lab", terran.Barracks, terran.BarracksTechLab, ability.Build_TechLab_Barracks, 2),
@@ -51,26 +56,25 @@ var Standard = Strategy{
 		// TODO: Update to a second wave
 		attackWaveStep(firstWaveConfig()),
 
+		// Things to do over and over again
+		refineryStep(0),
+
 		// These are just in the meantime
 		buildingStep("Armory", terran.Armory, ability.Build_Armory, 1, terran.Factory),
 
 		upgradeStep("Infantry Weapons Level 2", ability.Research_TerranInfantryWeaponsLevel2, terran.EngineeringBay),
 		upgradeStep("Infantry Armor Level 2", ability.Research_TerranInfantryArmorLevel2, terran.EngineeringBay),
-		attackWaveStep(firstWaveConfig()),
 
 		upgradeStep("Infantry Weapons Level 3", ability.Research_TerranInfantryWeaponsLevel3, terran.EngineeringBay),
 		upgradeStep("Infantry Armor Level 3", ability.Research_TerranInfantryArmorLevel3, terran.EngineeringBay),
-		attackWaveStep(firstWaveConfig()),
-
-		attackWaveStep(fullSupplyWaveConfig()),
 	},
 }
 
-// SupplyDepotStep builds supply depots.
+// supplyDepotStep builds supply depots.
 //
 // TODO: Continuously make one supply depot after the other. Don't wait until
 // we're supply blocked.
-var SupplyDepotStep = BuildStep{
+var supplyDepotStep = BuildStep{
 	Name: "Supply Depot",
 	Predicate: func(b *Bot) bool {
 		if !b.CanBuy(ability.Build_SupplyDepot) {
@@ -85,7 +89,7 @@ var SupplyDepotStep = BuildStep{
 			return false
 		}
 
-		townHalls := b.findTownHalls()
+		townHalls := b.FindTownHalls()
 		production := b.findProductionStructures()
 
 		structures := slices.Concat(townHalls, production)
@@ -98,14 +102,14 @@ var SupplyDepotStep = BuildStep{
 		scvDuringDepots := uint32(math.Ceil(float64(BuildTimeSupplyDepot) / timeForScv))
 
 		// Don't build if we have enough supply or if already building
-		depotsOrdered := b.findWorkers().Filter(filter.IsOrderedTo(ability.Build_SupplyDepot)).Len() >= 1
+		depotsOrdered := b.FindWorkers().Filter(filter.IsOrderedTo(ability.Build_SupplyDepot)).Len() >= 1
 		depotsInProgress := b.Units.My.OfType(terran.SupplyDepot).Filter(filter.IsInProgress).Len() >= 1
 
 		return supplyLeft <= scvDuringDepots && !depotsOrdered && !depotsInProgress
 	},
 
 	Execute: func(b *Bot) {
-		townHalls := b.findTownHalls().Filter(filter.IsCcAtExpansion(b.State.CcForExp))
+		townHalls := b.FindTownHalls().Filter(filter.IsCcAtExpansion(b.State.CcForExp))
 		if townHalls.Empty() {
 			return
 		}
@@ -113,12 +117,12 @@ var SupplyDepotStep = BuildStep{
 		randomTownHall := townHalls[rand.Intn(len(townHalls))]
 
 		// Find a good position for the supply depot
-		pos := b.whereToBuild(randomTownHall.Point(), scl.S2x2, terran.SupplyDepot, ability.Build_SupplyDepot)
+		pos := b.WhereToBuild(randomTownHall.Point(), scl.S2x2, terran.SupplyDepot, ability.Build_SupplyDepot)
 		if pos == nil {
 			return
 		}
 
-		builder := b.findIdleOrGatheringWorkers().ClosestTo(pos)
+		builder := b.FindIdleOrGatheringWorkers().ClosestTo(pos)
 		if builder == nil {
 			return
 		}
@@ -147,8 +151,37 @@ var SupplyDepotStep = BuildStep{
 
 	Next: func(b *Bot) bool {
 		return b.Units.My.OfType(terran.SupplyDepot).Len() >= 1 ||
-			b.findWorkers().Filter(filter.IsOrderedTo(ability.Build_SupplyDepot)).Exists()
+			b.FindWorkers().Filter(filter.IsOrderedTo(ability.Build_SupplyDepot)).Exists()
 	},
+}
+
+// chatVersionStep announces the version number of the bot.
+func chatVersionStep() *BuildStep {
+	announced := false
+
+	return &BuildStep{
+		Name: "Announce version number",
+		Predicate: func(b *Bot) bool {
+			return true
+		},
+		Execute: func(b *Bot) {
+			if announced {
+				return
+			}
+
+			// Print version information for everyone to enjoy
+			info, ok := debug.ReadBuildInfo()
+			if ok {
+				message := fmt.Sprintf("BlackCompany %s", info.Main.Version)
+				b.Actions.ChatSend(message, api.ActionChat_Team)
+			}
+
+			announced = true
+		},
+		Next: func(b *Bot) bool {
+			return true
+		},
+	}
 }
 
 func buildingStep(name string, buildingId api.UnitTypeID, abilityId api.AbilityID, quantity int, requirements ...api.UnitTypeID) *BuildStep {
@@ -166,7 +199,7 @@ func buildingStep(name string, buildingId api.UnitTypeID, abilityId api.AbilityI
 			}
 
 			buildings := b.Units.My.OfType(buildingId)
-			ordered := b.findWorkers().Filter(filter.IsOrderedTo(abilityId))
+			ordered := b.FindWorkers().Filter(filter.IsOrderedTo(abilityId))
 			inProgress := buildings.Filter(filter.IsInProgress)
 			notStarted := ordered.Len() - inProgress.Len()
 			return buildings.Len()+notStarted < quantity
@@ -178,7 +211,7 @@ func buildingStep(name string, buildingId api.UnitTypeID, abilityId api.AbilityI
 
 		Next: func(b *Bot) bool {
 			buildings := b.Units.My.OfType(buildingId)
-			ordered := b.findWorkers().Filter(filter.IsOrderedTo(abilityId))
+			ordered := b.FindWorkers().Filter(filter.IsOrderedTo(abilityId))
 			inProgress := buildings.Filter(filter.IsInProgress)
 			notStarted := ordered.Len() - inProgress.Len()
 			return buildings.Len()+notStarted >= quantity
@@ -194,8 +227,12 @@ func refineryStep(quantity int) *BuildStep {
 				return false
 			}
 
+			if quantity == 0 {
+				return true
+			}
+
 			refineries := b.Units.My.OfType(terran.Refinery, terran.RefineryRich)
-			ordered := b.findWorkers().Filter(filter.IsOrderedTo(ability.Build_Refinery))
+			ordered := b.FindWorkers().Filter(filter.IsOrderedTo(ability.Build_Refinery))
 			inProgress := refineries.Filter(filter.IsInProgress)
 			notStarted := ordered.Len() - inProgress.Len()
 
@@ -203,28 +240,44 @@ func refineryStep(quantity int) *BuildStep {
 		},
 
 		Execute: func(b *Bot) {
-			townHalls := b.findTownHalls()
-			vespeneGeysers := b.findVespeneGeysersNearTownHalls(townHalls)
-			if townHalls.Empty() || vespeneGeysers.Empty() {
+			townHalls := b.FindTownHalls()
+			if townHalls.Empty() {
 				return
 			}
 
-			randomVespeneGeyser := vespeneGeysers[rand.Intn(len(vespeneGeysers))]
-			worker := b.findIdleOrGatheringWorkers().ClosestTo(randomVespeneGeyser)
+			vespeneGeysers := b.findVespeneGeysersNearTownHalls(townHalls)
+			claimed := b.FindClaimedVespeneGeysersNearTownHalls(townHalls)
+			buildable := vespeneGeysers.Filter(filter.NotCloserThan(1, claimed))
+			if buildable.Empty() {
+				return
+			}
+
+			ordered := b.FindWorkers().Filter(filter.IsOrderedTo(ability.Build_Refinery))
+			unplanned := buildable.Filter(filter.IsNotOrderedOnTag(ability.Build_Refinery, ordered))
+			if unplanned.Empty() {
+				return
+			}
+
+			random := unplanned[rand.Intn(len(unplanned))]
+			worker := b.FindIdleOrGatheringWorkers().ClosestTo(random)
 			if worker == nil {
 				return
 			}
 
-			log.Info("Building refinery at %v", randomVespeneGeyser.Point())
-			worker.CommandTag(ability.Build_Refinery, randomVespeneGeyser.Tag)
-			worker.CommandTagQueue(ability.Smart, randomVespeneGeyser.Tag)
+			log.Info("Building refinery at %v", random.Point())
+			worker.CommandTag(ability.Build_Refinery, random.Tag)
+			worker.CommandTagQueue(ability.Smart, random.Tag)
 			b.DeductResources(ability.Build_Refinery)
-			b.Miners.GasForMiner[worker.Tag] = randomVespeneGeyser.Tag
+			b.Miners.GasForMiner[worker.Tag] = random.Tag
 		},
 
 		Next: func(b *Bot) bool {
+			if quantity == 0 {
+				return true
+			}
+
 			refineries := b.Units.My.OfType(terran.Refinery, terran.RefineryRich)
-			ordered := b.findWorkers().Filter(filter.IsOrderedTo(ability.Build_Refinery))
+			ordered := b.FindWorkers().Filter(filter.IsOrderedTo(ability.Build_Refinery))
 			inProgress := refineries.Filter(filter.IsInProgress)
 			notStarted := ordered.Len() - inProgress.Len()
 			return refineries.Len()+notStarted >= quantity
@@ -259,7 +312,9 @@ func orbitalCommandStep(quantity int) *BuildStep {
 			if b.State.CcForOrbitalCommand == 0 {
 				// There's no command center marked for morphing into an orbital
 				// command, so let's mark one
-				commandCenters := b.Units.My.OfType(terran.CommandCenter).Filter(scl.Ready)
+				commandCenters := b.Units.My.
+					OfType(terran.CommandCenter).
+					Filter(scl.Ready, filter.IsCcAtExpansion(b.State.CcForExp))
 				if commandCenters.Empty() {
 					return
 				}
@@ -353,7 +408,7 @@ func addonStep(name string, buildingId api.UnitTypeID, addonId api.UnitTypeID, a
 			reserved.Command(abilityId)
 
 			// In case it fails, queue the add-on to a new location
-			elsewhere := b.whereToBuild(reserved.Point(), scl.S5x3, addonId, abilityId)
+			elsewhere := b.WhereToBuild(reserved.Point(), scl.S5x3, addonId, abilityId)
 			reserved.CommandPosQueue(abilityId, elsewhere)
 
 			b.DeductResources(abilityId)
@@ -366,7 +421,7 @@ func addonStep(name string, buildingId api.UnitTypeID, addonId api.UnitTypeID, a
 	}
 }
 
-var TrainMarine = BuildStep{
+var trainMarine = BuildStep{
 	Name: "Train Marine",
 	Predicate: func(b *Bot) bool {
 		return b.CanBuy(ability.Train_Marine)
@@ -429,7 +484,7 @@ func (b *Bot) amountTrainMarines(barracks *scl.Unit) int {
 }
 
 func (b *Bot) rallyPoint() *point.Point {
-	townHalls := b.findTownHalls().Filter(filter.IsCcAtExpansion(b.State.CcForExp))
+	townHalls := b.FindTownHalls().Filter(filter.IsCcAtExpansion(b.State.CcForExp))
 	if townHalls.Empty() {
 		return nil
 	}
@@ -444,19 +499,19 @@ func (b *Bot) build(name string, buildingId api.UnitTypeID, abilityId api.Abilit
 		return
 	}
 
-	townHalls := b.findTownHalls().Filter(filter.IsCcAtExpansion(b.State.CcForExp))
+	townHalls := b.FindTownHalls().Filter(filter.IsCcAtExpansion(b.State.CcForExp))
 	if townHalls.Empty() {
 		return
 	}
 
 	randomTownHall := townHalls[rand.Intn(len(townHalls))]
 
-	pos := b.whereToBuild(randomTownHall.Point(), size, buildingId, abilityId)
+	pos := b.WhereToBuild(randomTownHall.Point(), size, buildingId, abilityId)
 	if pos == nil {
 		return
 	}
 
-	builder := b.findIdleOrGatheringWorkers().ClosestTo(pos)
+	builder := b.FindIdleOrGatheringWorkers().ClosestTo(pos)
 	if builder == nil {
 		return
 	}
@@ -533,6 +588,136 @@ func attackWaveStep(config *AttackWaveConfig) *BuildStep {
 		Execute:   config.Execute,
 		Next: func(b *Bot) bool {
 			return true
+		},
+	}
+}
+
+// defenseWaveStep assigns an attack wave to the defense of the bases.
+var defenseWaveStep = BuildStep{
+	Name: "Defense Wave",
+	Predicate: func(b *Bot) bool {
+		return true
+	},
+	Execute: func(b *Bot) {
+		enemyInBases := b.FindEnemiesInBases()
+		if len(enemyInBases) == 0 {
+			return
+		}
+
+		base, enemies := b.mostThreatenedBase(enemyInBases)
+		if base == nil || enemies.Empty() {
+			return
+		}
+
+		// Where is the enemy cluster at that base?
+		cluster := findClusterAtBase(base, enemies)
+		if cluster.Empty() {
+			log.Error("No cluster found at base %v", base.Point())
+			return
+		}
+
+		inWaves := b.State.AttackWaves.Units(b)
+		marines := b.Units.My.OfType(terran.Marine).Filter(scl.Ready, filter.NotIn(inWaves))
+		if marines.Empty() {
+			return
+		}
+
+		wave := AttackWave{
+			Tags:   marines.Tags(),
+			Target: cluster.Center(),
+		}
+		b.State.AttackWaves = append(b.State.AttackWaves, wave)
+		log.Info("Sending %d marines defend base at %v", marines.Len(), base.Point())
+	},
+	Next: func(b *Bot) bool {
+		return true
+	},
+}
+
+func (b *Bot) mostThreatenedBase(enemyInBases map[api.UnitTag]scl.Units) (*scl.Unit, scl.Units) {
+	var mostEnemyBase *scl.Unit
+	var mostEnemyUnits scl.Units
+
+	for base, units := range enemyInBases {
+		if len(units) > mostEnemyUnits.Len() {
+			mostEnemyBase = b.Units.MyAll.ByTag(base)
+			mostEnemyUnits = units
+		}
+	}
+
+	return mostEnemyBase, mostEnemyUnits
+}
+
+func findClusterAtBase(base *scl.Unit, enemies scl.Units) scl.Units {
+	closest := enemies.ClosestTo(base)
+	cluster := clusterBySight(closest, enemies)
+	return cluster
+}
+
+func clusterBySight(target *scl.Unit, units scl.Units) scl.Units {
+	cluster := make(scl.Units, 0, len(units))
+	cluster.Add(target)
+
+	// For each unit in the cluster, add all units in sight to the cluster.
+	for _, unit := range cluster {
+		inSight := units.Filter(filter.NotIn(cluster), filter.InSightOf(unit))
+		cluster = append(cluster, inSight...)
+	}
+
+	return cluster
+}
+
+func (b *Bot) FindEnemyClusterAtHome() scl.Units {
+	enemyInBases := b.FindEnemiesInBases()
+	if len(enemyInBases) == 0 {
+		return scl.Units{}
+	}
+
+	base, enemies := b.mostThreatenedBase(enemyInBases)
+	if base == nil || enemies.Empty() {
+		return scl.Units{}
+	}
+
+	// Where is the enemy cluster at that base?
+	cluster := findClusterAtBase(base, enemies)
+	if cluster.Empty() {
+		log.Error("No cluster found at base %v", base.Point())
+		return scl.Units{}
+	}
+
+	return cluster
+}
+
+func townHallStep(buildingId api.UnitTypeID, abilityId api.AbilityID, quantity int) *BuildStep {
+	return &BuildStep{
+		Name: "Town Hall",
+		Predicate: func(b *Bot) bool {
+			if !b.CanBuy(abilityId) {
+				return false
+			}
+
+			townHalls := b.FindTownHalls()
+			inProgress := townHalls.Filter(filter.IsInProgress)
+			notStarted := b.FindWorkers().Filter(filter.IsOrderedTo(abilityId)).Len() - inProgress.Len()
+
+			if quantity == 0 && inProgress.Len() == 0 && notStarted == 0 {
+				return true
+			}
+
+			return townHalls.Len()+notStarted < quantity
+		},
+		Execute: func(b *Bot) {
+			b.build("Town Hall", buildingId, abilityId, scl.S5x3)
+		},
+		Next: func(b *Bot) bool {
+			if quantity == 0 {
+				return true
+			}
+
+			townHalls := b.FindTownHalls()
+			inProgress := townHalls.Filter(filter.IsInProgress)
+			notStarted := b.FindWorkers().Filter(filter.IsOrderedTo(abilityId)).Len() - inProgress.Len()
+			return townHalls.Len()+notStarted >= quantity
 		},
 	}
 }
