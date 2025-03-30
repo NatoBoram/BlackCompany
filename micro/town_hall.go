@@ -146,8 +146,8 @@ func flyTime(b *bot.Bot, origin point.Pointer, unit api.UnitTypeID, destination 
 // hasFreeCommandCenter checks if there's a command center that's not at an
 // expansion location that we can use to expand by lifting it.
 func hasFreeCommandCenter(b *bot.Bot) scl.Units {
-	commandCenters := b.Units.My.OfType(terran.CommandCenter)
-	flying := b.Units.My.OfType(terran.CommandCenterFlying)
+	commandCenters := b.Units.My.OfType(terran.CommandCenter, terran.OrbitalCommand)
+	flying := b.Units.My.OfType(terran.CommandCenterFlying, terran.OrbitalCommandFlying)
 	free := make(scl.Units, 0, commandCenters.Len()+flying.Len())
 
 	if flying.Exists() {
