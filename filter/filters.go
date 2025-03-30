@@ -75,12 +75,15 @@ func IsUnsaturatedVespeneGeyser(saturation map[api.UnitTag]int, target int) scl.
 // least one unit in the list
 func CloserThan(distance float64, units scl.Units) scl.Filter {
 	return func(unit *scl.Unit) bool {
-		for _, target := range units {
-			if unit.IsCloserThan(distance, target) {
-				return true
-			}
-		}
-		return false
+		return units.CloserThan(distance, unit).Exists()
+	}
+}
+
+// NotCloserThan returns a filter that selects units that are not closer than
+// the specified distance to any unit in the given set.
+func NotCloserThan(distance float64, units scl.Units) scl.Filter {
+	return func(unit *scl.Unit) bool {
+		return units.CloserThan(distance, unit).Empty()
 	}
 }
 
@@ -125,6 +128,47 @@ func IsOrderedToTarget(ability api.AbilityID, target point.Point) scl.Filter {
 		}
 
 		return false
+	}
+}
+
+func IsOrderedToTag(ability api.AbilityID, tag api.UnitTag) scl.Filter {
+	return func(u *scl.Unit) bool {
+		if len(u.Orders) <= 0 {
+			return false
+		}
+
+		for _, order := range u.Orders {
+			if order.AbilityId == ability && order.GetTargetUnitTag() == tag {
+				return true
+			}
+		}
+
+		return false
+	}
+}
+
+// IsNotOrderedOnTag filters units that aren't being ordered to something by
+// other units.
+//
+// For example, to check that no workers in that list are ordered to build a
+// refinery on that vespene geyser, you would do:
+//
+//	geysers.Filter(filter.IsNotOrderedOnTag(ability.Build_Refinery, workers))
+func IsNotOrderedOnTag(ability api.AbilityID, units scl.Units) scl.Filter {
+	return func(target *scl.Unit) bool {
+		for _, unit := range units {
+			if len(unit.Orders) <= 0 {
+				continue
+			}
+
+			for _, order := range unit.Orders {
+				if order.AbilityId == ability && order.GetTargetUnitTag() == target.Tag {
+					return false
+				}
+			}
+		}
+
+		return true
 	}
 }
 

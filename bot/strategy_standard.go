@@ -241,22 +241,34 @@ func refineryStep(quantity int) *BuildStep {
 
 		Execute: func(b *Bot) {
 			townHalls := b.FindTownHalls()
-			vespeneGeysers := b.findVespeneGeysersNearTownHalls(townHalls)
-			if townHalls.Empty() || vespeneGeysers.Empty() {
+			if townHalls.Empty() {
 				return
 			}
 
-			randomVespeneGeyser := vespeneGeysers[rand.Intn(len(vespeneGeysers))]
-			worker := b.FindIdleOrGatheringWorkers().ClosestTo(randomVespeneGeyser)
+			vespeneGeysers := b.findVespeneGeysersNearTownHalls(townHalls)
+			claimed := b.FindClaimedVespeneGeysersNearTownHalls(townHalls)
+			buildable := vespeneGeysers.Filter(filter.NotCloserThan(1, claimed))
+			if buildable.Empty() {
+				return
+			}
+
+			ordered := b.FindWorkers().Filter(filter.IsOrderedTo(ability.Build_Refinery))
+			unplanned := buildable.Filter(filter.IsNotOrderedOnTag(ability.Build_Refinery, ordered))
+			if unplanned.Empty() {
+				return
+			}
+
+			random := unplanned[rand.Intn(len(unplanned))]
+			worker := b.FindIdleOrGatheringWorkers().ClosestTo(random)
 			if worker == nil {
 				return
 			}
 
-			log.Info("Building refinery at %v", randomVespeneGeyser.Point())
-			worker.CommandTag(ability.Build_Refinery, randomVespeneGeyser.Tag)
-			worker.CommandTagQueue(ability.Smart, randomVespeneGeyser.Tag)
+			log.Info("Building refinery at %v", random.Point())
+			worker.CommandTag(ability.Build_Refinery, random.Tag)
+			worker.CommandTagQueue(ability.Smart, random.Tag)
 			b.DeductResources(ability.Build_Refinery)
-			b.Miners.GasForMiner[worker.Tag] = randomVespeneGeyser.Tag
+			b.Miners.GasForMiner[worker.Tag] = random.Tag
 		},
 
 		Next: func(b *Bot) bool {
