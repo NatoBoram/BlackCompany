@@ -23,7 +23,11 @@ jobs:
           go-version: stable
 
       - run: go build
-      - run: zip -9 -r BlackCompany.zip BlackCompany
+
+      - run: zip -9 -r "BlackCompany-$VERSION.zip" BlackCompany
+        env:
+          VERSION: ${{ github.ref_name }}
+
       - run: gh release create "$VERSION" --generate-notes --title "$VERSION" --verify-tag BlackCompany.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
