@@ -17,7 +17,7 @@ import (
 // building somewhere safe.
 func addonStep(name string, buildingId api.UnitTypeID, addonId api.UnitTypeID, abilityId api.AbilityID, quantity int) *bot.BuildStep {
 	return &bot.BuildStep{
-		Name: name,
+		Name: stepName(name, quantity),
 		Predicate: func(b *bot.Bot) bool {
 			buildings := b.Units.My.OfType(buildingId).Filter(scl.Ready, scl.Ground, scl.NoAddon)
 			if buildings.Empty() {

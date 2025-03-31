@@ -1,6 +1,7 @@
 package macro
 
 import (
+	"fmt"
 	"math/rand"
 
 	"github.com/NatoBoram/BlackCompany/bot"
@@ -11,19 +12,31 @@ import (
 	"github.com/aiseeq/s2l/protocol/api"
 	"github.com/aiseeq/s2l/protocol/enums/ability"
 	"github.com/aiseeq/s2l/protocol/enums/terran"
+	"github.com/jwalton/gchalk"
 )
 
-// Macro executes a strategy.
-func Macro(b *bot.Bot, s *bot.Strategy) {
+// Step executes a strategy.
+func Step(b *bot.Bot, s *bot.Strategy, last string) string {
+	// Skip repeated frames
+	if b.LastLoop != b.Loop {
+		return last
+	}
+
 	for _, step := range s.Steps {
 		if step.Predicate(b) {
 			step.Execute(b)
 		}
 
 		if !step.Next(b) {
-			break
+			if last != "" && last != step.Name {
+				log.Info("Current build step: %s", gchalk.Bold(step.Name))
+			}
+
+			return step.Name
 		}
 	}
+
+	return last
 }
 
 func deductMarines(b *bot.Bot, barracks *scl.Unit) int {
@@ -100,4 +113,12 @@ func build(b *bot.Bot, name string, buildingId api.UnitTypeID, abilityId api.Abi
 	}
 
 	b.DeductResources(abilityId)
+}
+
+func stepName(name string, quantity int) string {
+	if quantity == 0 {
+		return name
+	}
+
+	return fmt.Sprintf(name+" (×%d)", quantity)
 }

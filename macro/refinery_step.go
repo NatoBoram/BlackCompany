@@ -12,7 +12,7 @@ import (
 
 func refineryStep(quantity int) *bot.BuildStep {
 	return &bot.BuildStep{
-		Name: "Refinery",
+		Name: stepName("Refinery", quantity),
 		Predicate: func(b *bot.Bot) bool {
 			if !b.CanBuy(ability.Build_Refinery) {
 				return false

@@ -13,7 +13,7 @@ import (
 
 func orbitalCommandStep(quantity int) *bot.BuildStep {
 	return &bot.BuildStep{
-		Name: "Orbital Command",
+		Name: stepName("Orbital Command", quantity),
 		Predicate: func(b *bot.Bot) bool {
 			barracks := b.Units.My.OfType(terran.Barracks).Filter(scl.Ready, scl.Ground)
 			if barracks.Empty() {

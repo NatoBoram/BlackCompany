@@ -51,21 +51,15 @@ func (b *Bot) FindExpansionLocations() point.Points {
 			continue
 		}
 
-		// It's already reserved for a town hall.
-		townHalls := b.State.CcForExp.ByExpansion(b, expansion)
-		if townHalls.Exists() {
-			continue
-		}
-
 		locations = append(locations, expansion)
 	}
 
 	return locations
 }
 
-// FindAvailableCommandCenters finds command centers that are not at an
+// FindUnassignedCommandCenters finds command centers that are not at an
 // expansion location that we can use to expand by lifting them.
-func (b *Bot) FindAvailableCommandCenters() scl.Units {
+func (b *Bot) FindUnassignedCommandCenters() scl.Units {
 	expansions := append(b.Locs.MyExps, b.Locs.MyStart)
 
 	return b.Units.My.
@@ -75,7 +69,7 @@ func (b *Bot) FindAvailableCommandCenters() scl.Units {
 		).
 		Filter(
 			filter.IsNotAtAny(expansions),
-			filter.IsNotCcAtExpansion(b.State.CcForExp),
+			filter.IsNotCcForExpansion(b.State.CcForExp),
 			filter.IsNotOrderedToAny(
 				ability.Lift, ability.Lift_CommandCenter, ability.Lift_OrbitalCommand,
 				ability.Land, ability.Land_CommandCenter, ability.Land_OrbitalCommand,
@@ -160,4 +154,45 @@ func (b *Bot) flyTime(origin point.Pointer, unit api.UnitTypeID, destination poi
 	}
 
 	return flyDistance / flySpeed
+}
+
+// AssignCCToExpansion finds all unassigned command centers and assigns them to
+// one.
+func (b *Bot) AssignCCToExpansion() {
+	unassigned := b.FindUnassignedCommandCenters()
+	if unassigned.Empty() {
+		return
+	}
+
+	// If they're already at an expansion, then just assign them that expansion.
+	expansions := append(b.Locs.MyExps, b.Locs.MyStart)
+	if expansions.Empty() {
+		return
+	}
+
+	assigned := make(scl.Units, 0, len(unassigned))
+	for _, cc := range unassigned {
+		closest := expansions.ClosestTo(cc)
+		if closest.IsCloserThan(1, cc) {
+			b.State.CcForExp[cc.Tag] = closest
+			assigned = append(assigned, cc)
+			continue
+		}
+	}
+
+	unassigned = unassigned.Filter(filter.NotIn(assigned))
+	expansions = b.FindExpansionLocations()
+	if expansions.Empty() {
+		return
+	}
+
+	for i, cc := range unassigned {
+		if i >= len(expansions) {
+			break
+		}
+
+		expansion := expansions[i]
+		log.Debug("Assigning a town hall to expansion %s", expansion)
+		b.State.CcForExp[cc.Tag] = expansion
+	}
 }

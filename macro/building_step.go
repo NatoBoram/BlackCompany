@@ -9,10 +9,10 @@ import (
 
 func buildingStep(name string, buildingId api.UnitTypeID, abilityId api.AbilityID, quantity int, requirements ...api.UnitTypeID) *bot.BuildStep {
 	return &bot.BuildStep{
-		Name: name,
+		Name: stepName(name, quantity),
 		Predicate: func(b *bot.Bot) bool {
 			for _, requirement := range requirements {
-				if b.Units.My.OfType(requirement).Empty() {
+				if b.Units.My.OfType(requirement).Filter(scl.Ready).Empty() {
 					return false
 				}
 			}
@@ -25,7 +25,7 @@ func buildingStep(name string, buildingId api.UnitTypeID, abilityId api.AbilityI
 			ordered := b.FindWorkers().Filter(filter.IsOrderedTo(abilityId))
 			inProgress := buildings.Filter(filter.IsInProgress)
 			notStarted := ordered.Len() - inProgress.Len()
-			return buildings.Len()+notStarted < quantity
+			return quantity == 0 || buildings.Len()+notStarted < quantity
 		},
 
 		Execute: func(b *bot.Bot) {

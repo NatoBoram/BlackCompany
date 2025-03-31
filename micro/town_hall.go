@@ -16,6 +16,7 @@ func handleTownHalls(b *bot.Bot) {
 
 func flyToExpansion(b *bot.Bot) {
 	// Make sure every command center is destined to an expansion
+	b.AssignCCToExpansion()
 
 	// Find the misplaced ones and move them
 	misplaced := b.State.CcForExp.Misplaced(b)
@@ -23,6 +24,10 @@ func flyToExpansion(b *bot.Bot) {
 		unit := b.Units.ByTag[tag]
 		if unit == nil {
 			delete(b.State.CcForExp, tag)
+			continue
+		}
+
+		if !unit.IsReady() {
 			continue
 		}
 
@@ -61,6 +66,11 @@ func flyToExpansion(b *bot.Bot) {
 
 	flying := b.Units.My.OfType(
 		terran.CommandCenterFlying, terran.OrbitalCommandFlying,
+	).Filter(
+		filter.IsOrderedToAny(
+			ability.Lift, ability.Lift_CommandCenter, ability.Lift_OrbitalCommand,
+			ability.Land, ability.Land_CommandCenter, ability.Land_OrbitalCommand,
+		),
 	)
 	if flying.Empty() {
 		return
@@ -74,9 +84,17 @@ func flyToExpansion(b *bot.Bot) {
 			continue
 		}
 
-		log.Info("Landing %s at %s", unit.Point(), expansion)
 		location := b.WhereToBuild(expansion, scl.S5x5, unit.UnitType, ability.Build_CommandCenter)
-		unit.CommandPos(ability.Land, location)
+
+		if unit.Is(terran.CommandCenterFlying) {
+			log.Info("Landing Command Center at %s", location)
+			unit.CommandPos(ability.Land_CommandCenter, location)
+		}
+
+		if unit.Is(terran.OrbitalCommandFlying) {
+			log.Info("Landing Orbital Command at %s", location)
+			unit.CommandPos(ability.Land_OrbitalCommand, location)
+		}
 	}
 }
 
@@ -149,7 +167,7 @@ func trainWorkers(b *bot.Bot) {
 		}
 
 		log.Info("Training SCV for resource %v", resource.Point())
-		cc.CommandTag(ability.Rally_CommandCenter, resource.Tag)
+		cc.CommandTag(ability.Rally_Building, resource.Tag)
 		cc.CommandQueue(ability.Train_SCV)
 		b.DeductResources(ability.Train_SCV)
 		resources.Remove(resource)

@@ -75,12 +75,13 @@ func runAgent(c *client.Client) {
 
 	stop := make(chan struct{})
 	b.Init(stop)
+	b.Observe()
 	b.InitState()
 
-	b.Observe()
+	var lastStep string
 	for b.Client.Status == api.Status_in_game {
 		b.Step()
-		macro.Macro(b, &macro.Standard)
+		lastStep = macro.Step(b, &macro.Standard, lastStep)
 		micro.Step(b)
 
 		// Once a step is done, send it to the game

@@ -125,3 +125,12 @@ func IsNotCcAtExpansion(ccForExp map[api.UnitTag]point.Point) scl.Filter {
 		return !ok || expansion.Dist(u) >= 1
 	}
 }
+
+// IsNotCcForExpansion filters command centers that are not designated for any
+// expansion.
+func IsNotCcForExpansion(ccForExp map[api.UnitTag]point.Point) scl.Filter {
+	return func(u *scl.Unit) bool {
+		_, ok := ccForExp[u.Tag]
+		return !ok
+	}
+}

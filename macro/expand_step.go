@@ -10,7 +10,7 @@ import (
 
 func expandStep(quantity int) *bot.BuildStep {
 	return &bot.BuildStep{
-		Name: "Expand",
+		Name: stepName("Expand", quantity),
 		Predicate: func(b *bot.Bot) bool {
 			if !b.ShouldExpand() {
 				return false
@@ -29,22 +29,6 @@ func expandStep(quantity int) *bot.BuildStep {
 				return
 			}
 
-			// Assign command centers to expansions
-			available := b.FindAvailableCommandCenters()
-			for i, cc := range available {
-				if i >= len(expansions) {
-					break
-				}
-				expansion := expansions[i]
-
-				log.Debug("Assigning a town hall to expansion %s", expansion)
-				b.State.CcForExp[cc.Tag] = expansion
-			}
-			if available.Exists() {
-				return
-			}
-
-			// No available command centers, so let's build one
 			expansion := expansions[0]
 
 			worker := b.FindIdleOrGatheringWorkers().ClosestTo(expansion)
