@@ -50,6 +50,26 @@ func (m *CcForExp) Misplaced(b *Bot) CcForExp {
 	return misplaced
 }
 
+func (m *CcForExp) DeleteTag(tag api.UnitTag) {
+	delete(*m, tag)
+}
+
+func (m *CcForExp) IsReserved(b *Bot, expansion point.Point) bool {
+	for tag, point := range *m {
+		unit := b.Units.ByTag[tag]
+		if unit == nil {
+			delete(*m, tag)
+			continue
+		}
+
+		if point.IsCloserThan(1, expansion) {
+			return true
+		}
+	}
+
+	return false
+}
+
 // ByExpansion returns the town halls that are reserved for a specific
 // expansion.
 func (m *CcForExp) ByExpansion(b *Bot, expansion point.Point) scl.Units {

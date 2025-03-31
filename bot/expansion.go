@@ -19,7 +19,7 @@ const (
 	MaxWorkers = 80
 )
 
-// FindExpansionLocations finds the next best available expansion location.
+// FindExpansionLocations finds the next best available expansion locations.
 func (b *Bot) FindExpansionLocations() point.Points {
 	locations := make(point.Points, 0, b.Locs.MyExps.Len()+1)
 	expansions := append(b.Locs.MyExps, b.Locs.MyStart)
@@ -28,6 +28,11 @@ func (b *Bot) FindExpansionLocations() point.Points {
 	for _, expansion := range expansions {
 		// Skip existing expansions
 		if townHalls.CloserThan(1, expansion).Exists() {
+			continue
+		}
+
+		// Skip reserved locations
+		if b.State.CcForExp.IsReserved(b, expansion) {
 			continue
 		}
 

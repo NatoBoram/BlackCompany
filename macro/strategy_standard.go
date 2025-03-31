@@ -44,6 +44,7 @@ var Standard = bot.Strategy{
 		attackWaveStep(firstWaveConfig()),
 
 		// Things to do over and over again
+		expandStep(0),
 		refineryStep(0),
 		&planetaryFortressStep,
 

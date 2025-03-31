@@ -10,82 +10,8 @@ import (
 )
 
 func handleTownHalls(b *bot.Bot) {
-	trainWorkers(b)
-	expand(b)
 	flyToExpansion(b)
-}
-
-// expand expands the bot's base whenever enough resources are available.
-func expand(b *bot.Bot) {
-	expansions := b.FindExpansionLocations()
-	if expansions.Empty() {
-		return
-	}
-
-	ccs := b.FindAvailableCommandCenters()
-	for i, cc := range ccs {
-		if i >= len(expansions) {
-			break
-		}
-		expansion := expansions[i]
-
-		log.Debug("Assigning a town hall to expansion %s", expansion)
-		b.State.CcForExp[cc.Tag] = expansion
-	}
-	if ccs.Exists() {
-		return
-	}
-
-	expansion := expansions[0]
-
-	ShouldExpand := b.ShouldExpand()
-	if !ShouldExpand {
-		return
-	}
-
-	workers := b.FindIdleOrGatheringWorkers()
-	if workers.Empty() {
-		return
-	}
-
-	worker := workers.ClosestTo(expansion)
-	if worker == nil {
-		return
-	}
-
-	townHalls := b.FindTownHalls()
-	if townHalls.Empty() {
-		log.Info("No town halls found, building Command Center at expansion %s", expansion)
-		location := b.WhereToBuild(expansion, scl.S5x5, terran.CommandCenter, ability.Build_CommandCenter)
-		worker.CommandPos(ability.Build_CommandCenter, location)
-		b.DeductResources(ability.Build_CommandCenter)
-		return
-	}
-
-	nearestTownHall := townHalls.ClosestTo(worker)
-	towards := nearestTownHall.Point().Towards(expansion, nearestTownHall.SightRange())
-	location := b.WhereToBuild(towards, scl.S5x5, terran.CommandCenter, ability.Build_CommandCenter)
-
-	// So do I build it there or near worker then fly it over?
-	if b.IsFlyingFaster(worker, location, expansion) {
-		log.Info("Building Command Center at base %s to fly to expansion %s", location, expansion)
-
-		worker.CommandPos(ability.Build_CommandCenter, location)
-		b.DeductResources(ability.Build_CommandCenter)
-
-		closestMineralField := b.Units.Minerals.All().ClosestTo(expansion)
-		worker.CommandTagQueue(ability.Smart, closestMineralField.Tag)
-
-		return
-	}
-
-	log.Info("Expanding to %s", expansion)
-
-	worker.CommandPos(ability.Build_CommandCenter, expansion)
-	b.DeductResources(ability.Build_CommandCenter)
-
-	closestMineralField := b.Units.Minerals.All().ClosestTo(expansion)
-	worker.CommandTagQueue(ability.Smart, closestMineralField.Tag)
+	trainWorkers(b)
 }
 
 func flyToExpansion(b *bot.Bot) {
@@ -96,6 +22,7 @@ func flyToExpansion(b *bot.Bot) {
 	for tag, expansion := range misplaced {
 		unit := b.Units.ByTag[tag]
 		if unit == nil {
+			delete(b.State.CcForExp, tag)
 			continue
 		}
 
@@ -130,7 +57,26 @@ func flyToExpansion(b *bot.Bot) {
 			log.Info("Flying Orbital Command from %s to expansion %s", unit.Point(), expansion)
 			unit.CommandPos(ability.Land_OrbitalCommand, expansion)
 		}
+	}
 
+	flying := b.Units.My.OfType(
+		terran.CommandCenterFlying, terran.OrbitalCommandFlying,
+	)
+	if flying.Empty() {
+		return
+	}
+
+	// Land them where they want to be landed
+	for _, unit := range flying {
+		expansion, ok := b.State.CcForExp[unit.Tag]
+		if !ok || expansion == 0 {
+			log.Warn("Command center %s is flying but has no expansion assigned", unit.Point())
+			continue
+		}
+
+		log.Info("Landing %s at %s", unit.Point(), expansion)
+		location := b.WhereToBuild(expansion, scl.S5x5, unit.UnitType, ability.Build_CommandCenter)
+		unit.CommandPos(ability.Land, location)
 	}
 }
 
