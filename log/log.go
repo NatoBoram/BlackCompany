@@ -27,21 +27,41 @@ var (
 )
 
 func Debug(format string, v ...any) {
+	if level > LogLevelDebug {
+		return
+	}
+
 	debug.Printf(format, v...)
 }
 
 func Info(format string, v ...any) {
+	if level > LogLevelInfo {
+		return
+	}
+
 	info.Printf(format, v...)
 }
 
 func Warn(format string, v ...any) {
+	if level > LogLevelWarn {
+		return
+	}
+
 	warn.Printf(format, v...)
 }
 
 func Error(format string, v ...any) {
+	if level > LogLevelDanger {
+		return
+	}
+
 	danger.Printf(format, v...)
 }
 
 func Fatal(format string, v ...any) {
+	if level > LogLevelFatal {
+		return
+	}
+
 	fatal.Fatalf(format, v...)
 }

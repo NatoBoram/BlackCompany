@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"github.com/NatoBoram/BlackCompany/adapter"
 	"github.com/NatoBoram/BlackCompany/filter"
 	"github.com/aiseeq/s2l/lib/scl"
 	"github.com/aiseeq/s2l/protocol/api"
@@ -25,8 +26,8 @@ func (b *Bot) acknowledgeMiners() {
 	// we can afford to delete the previous list.
 	b.Miners.CCForMiner = map[api.UnitTag]api.UnitTag{}
 	for _, th := range townHalls {
-		resources := b.findResourcesNearTownHalls(scl.Units{th})
-		targets := filter.ToTags(resources)
+		resources := b.FindResourcesNearTownHalls(scl.Units{th})
+		targets := adapter.ToTags(resources)
 		targets = append(targets, th.Tag)
 
 		for _, miner := range miners {
@@ -85,15 +86,4 @@ func (b *Bot) acknowledgeMiners() {
 	// 	"Miners: %d, CCForMiner: %d, GasForMiner: %d, MineralForMiner: %d",
 	// 	miners.Len(), len(b.Miners.CCForMiner), len(b.Miners.GasForMiner), len(b.Miners.MineralForMiner),
 	// )
-}
-
-func (b *Bot) resetMinerAcknowledgements() {
-	// CCForMiner[miner.Tag] = cc.Tag
-	b.Miners.CCForMiner = map[api.UnitTag]api.UnitTag{}
-	// GasForMiner[miner.Tag] = gas.Tag
-	b.Miners.GasForMiner = map[api.UnitTag]api.UnitTag{}
-	// MineralForMiner[miner.Tag] = mf.Tag
-	b.Miners.MineralForMiner = map[api.UnitTag]api.UnitTag{}
-	// Miners.LastSeen[miner.Tag] = b.Loop
-	b.Miners.LastSeen = map[api.UnitTag]int{}
 }

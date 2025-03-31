@@ -40,8 +40,8 @@ func (b *Bot) FindClaimedVespeneGeysersNearTownHalls(townHalls scl.Units) scl.Un
 	return refineries
 }
 
-// findVespeneGeysersNearTownHalls finds all vespene geysers near town halls.
-func (b *Bot) findVespeneGeysersNearTownHalls(townHalls scl.Units) scl.Units {
+// FindVespeneGeysersNearTownHalls finds all vespene geysers near town halls.
+func (b *Bot) FindVespeneGeysersNearTownHalls(townHalls scl.Units) scl.Units {
 	vespeneGeysers := make(scl.Units, 0, len(townHalls)*2)
 	for _, th := range townHalls {
 		ccGeysers := b.Units.Geysers.All().
@@ -62,9 +62,9 @@ func (b *Bot) FindTownHalls() scl.Units {
 	)
 }
 
-// findProductionStructures finds all structures capable of training military
+// FindProductionStructures finds all structures capable of training military
 // units.
-func (b *Bot) findProductionStructures() scl.Units {
+func (b *Bot) FindProductionStructures() scl.Units {
 	return b.Units.My.OfType(
 		protoss.Gateway, protoss.RoboticsFacility, protoss.Stargate,
 		terran.Barracks, terran.Factory, terran.Starport,
@@ -109,8 +109,8 @@ func (b *Bot) findTurretsNearResourcesNearTownHalls(resources scl.Units) scl.Uni
 	).Filter(filter.CloserThan(scl.ResourceSpreadDistance, resources))
 }
 
-// findResourcesNearTownHalls finds all resources near town halls.
-func (b *Bot) findResourcesNearTownHalls(townHalls scl.Units) scl.Units {
+// FindResourcesNearTownHalls finds all resources near town halls.
+func (b *Bot) FindResourcesNearTownHalls(townHalls scl.Units) scl.Units {
 	mineralFields := b.FindMineralFieldsNearTownHalls(townHalls)
 	refineries := b.FindClaimedVespeneGeysersNearTownHalls(townHalls)
 	return slices.Concat(mineralFields, refineries)

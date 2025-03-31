@@ -66,7 +66,7 @@ func recenterWave(units scl.Units, target point.Point) scl.Units {
 
 	towards := center.Towards(target, 1)
 
-	log.Info("Recentering %d units", decentered.Len())
+	log.Debug("Recentering %d units", decentered.Len())
 	for _, unit := range units {
 		if filter.IsNotOrderedToTarget(ability.Move, towards)(unit) {
 			unit.CommandPos(ability.Move, towards)
