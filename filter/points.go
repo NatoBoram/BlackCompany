@@ -7,6 +7,6 @@ import (
 
 func IsNotAtAny(points point.Points) scl.Filter {
 	return func(u *scl.Unit) bool {
-		return points.CloserThan(1, u).Exists()
+		return points.CloserThan(1, u).Empty()
 	}
 }

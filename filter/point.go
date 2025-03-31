@@ -7,6 +7,6 @@ import (
 
 func IsNotAt(point point.Point) scl.Filter {
 	return func(u *scl.Unit) bool {
-		return u.IsCloserThan(1, point)
+		return u.IsFurtherThan(1, point)
 	}
 }
