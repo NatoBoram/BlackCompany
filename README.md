@@ -3,6 +3,7 @@
 [![Go](https://github.com/NatoBoram/BlackCompany/actions/workflows/go.yaml/badge.svg)](https://github.com/NatoBoram/BlackCompany/actions/workflows/go.yaml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/NatoBoram/BlackCompany)](https://goreportcard.com/report/github.com/NatoBoram/BlackCompany)
 [![Go Reference](https://pkg.go.dev/badge/github.com/NatoBoram/BlackCompany.svg)](https://pkg.go.dev/github.com/NatoBoram/BlackCompany)
+[![Wakapi](https://wakapi.dev/api/badge/NatoBoram/interval:any/project:BlackCompany)](https://wakapi.dev/summary?interval=any&project=BlackCompany)
 
 BlackCompany is a StarCraft II bot written in Go.
 

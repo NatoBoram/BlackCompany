@@ -4,63 +4,33 @@ import (
 	"github.com/NatoBoram/BlackCompany/bot"
 	"github.com/NatoBoram/BlackCompany/filter"
 	"github.com/NatoBoram/BlackCompany/log"
-	"github.com/NatoBoram/BlackCompany/sight"
-	"github.com/aiseeq/s2l/lib/point"
 	"github.com/aiseeq/s2l/lib/scl"
-	"github.com/aiseeq/s2l/protocol/api"
 	"github.com/aiseeq/s2l/protocol/enums/ability"
 	"github.com/aiseeq/s2l/protocol/enums/terran"
-)
-
-const (
-	// MaxWorkers is the maximum number of workers that can be trained.
-	MaxWorkers = 80
 )
 
 func handleTownHalls(b *bot.Bot) {
 	trainWorkers(b)
 	expand(b)
+	flyToExpansion(b)
 }
 
 // expand expands the bot's base whenever enough resources are available.
 func expand(b *bot.Bot) {
-	expansions := findExpansionLocations(b)
+	expansions := b.FindExpansionLocations()
 	if expansions.Empty() {
 		return
 	}
 
-	ccs := hasFreeCommandCenter(b)
+	ccs := b.FindAvailableCommandCenters()
 	for i, cc := range ccs {
 		if i >= len(expansions) {
 			break
 		}
 		expansion := expansions[i]
 
-		if !cc.IsFlying && cc.IsReady() {
-			if cc.Is(terran.CommandCenter) {
-				log.Info("Lifting Command Center from %s to expansion %s", cc.Point(), expansion)
-				cc.Command(ability.Lift_CommandCenter)
-			}
-
-			if cc.Is(terran.OrbitalCommand) {
-				log.Info("Lifting Orbital Command from %s to expansion %s", cc.Point(), expansion)
-				cc.Command(ability.Lift_OrbitalCommand)
-			}
-
-			b.State.CcForExp[cc.Tag] = expansion
-		}
-
-		if cc.IsFlying && cc.IsIdle() {
-			if cc.Is(terran.CommandCenterFlying) {
-				cc.CommandPosQueue(ability.Land_CommandCenter, expansion)
-			}
-			if cc.Is(terran.OrbitalCommandFlying) {
-				cc.CommandPosQueue(ability.Land_OrbitalCommand, expansion)
-			}
-
-			b.State.CcForExp[cc.Tag] = expansion
-		}
-
+		log.Debug("Assigning a town hall to expansion %s", expansion)
+		b.State.CcForExp[cc.Tag] = expansion
 	}
 	if ccs.Exists() {
 		return
@@ -68,8 +38,8 @@ func expand(b *bot.Bot) {
 
 	expansion := expansions[0]
 
-	shouldExpand := shouldExpand(b)
-	if !shouldExpand {
+	ShouldExpand := b.ShouldExpand()
+	if !ShouldExpand {
 		return
 	}
 
@@ -97,7 +67,7 @@ func expand(b *bot.Bot) {
 	location := b.WhereToBuild(towards, scl.S5x5, terran.CommandCenter, ability.Build_CommandCenter)
 
 	// So do I build it there or near worker then fly it over?
-	if isFlyingFaster(b, worker, location, expansion) {
+	if b.IsFlyingFaster(worker, location, expansion) {
 		log.Info("Building Command Center at base %s to fly to expansion %s", location, expansion)
 
 		worker.CommandPos(ability.Build_CommandCenter, location)
@@ -118,130 +88,50 @@ func expand(b *bot.Bot) {
 	worker.CommandTagQueue(ability.Smart, closestMineralField.Tag)
 }
 
-// isFlyingFaster calculates whether flying a CC to the target location is
-// faster than having a worker walk there to build it.
-//
-// Does not take into account lifting time nor landing time.
-func isFlyingFaster(b *bot.Bot, worker *scl.Unit, base point.Pointer, expansion point.Point) bool {
-	flyTime := flyTime(b, base, terran.CommandCenterFlying, expansion)
-	walkTime := walkTime(b, worker, expansion)
+func flyToExpansion(b *bot.Bot) {
+	// Make sure every command center is destined to an expansion
 
-	log.Debug("Worker travel time: %f, fly time: %f", walkTime, flyTime)
-
-	return flyTime < walkTime
-}
-
-func walkTime(b *bot.Bot, unit *scl.Unit, destination point.Point) float64 {
-	walkDistance := b.RequestPathing(unit, destination)
-	if walkDistance == 0 {
-		return 0
-	}
-
-	return walkDistance / unit.Speed()
-}
-
-func flyTime(b *bot.Bot, origin point.Pointer, unit api.UnitTypeID, destination point.Point) float64 {
-	flySpeed := float64(b.U.Types[unit].MovementSpeed)
-
-	flyDistance := origin.Point().Dist(destination)
-	if flyDistance == 0 {
-		return 0
-	}
-
-	return flyDistance / flySpeed
-}
-
-// hasFreeCommandCenter checks if there's a command center that's not at an
-// expansion location that we can use to expand by lifting it.
-func hasFreeCommandCenter(b *bot.Bot) scl.Units {
-	return b.Units.My.
-		OfType(
-			terran.CommandCenter, terran.OrbitalCommand,
-			terran.CommandCenterFlying, terran.OrbitalCommandFlying,
-		).
-		Filter(
-			filter.IsNotCcAtExpansion(b.State.CcForExp),
-			filter.IsNotOrderedToAny(
-				ability.Lift, ability.Lift_CommandCenter, ability.Lift_OrbitalCommand,
-				ability.Land, ability.Land_CommandCenter, ability.Land_OrbitalCommand,
-			),
-		)
-}
-
-// findExpansionLocation finds the next best available expansion location.
-func findExpansionLocations(b *bot.Bot) point.Points {
-	locations := make(point.Points, 0, b.Locs.MyExps.Len()+1)
-	expansions := append(b.Locs.MyExps, b.Locs.MyStart)
-	townHalls := b.FindTownHalls()
-
-	for _, expansion := range expansions {
-		// Skip existing expansions
-		if townHalls.CloserThan(scl.ResourceSpreadDistance, expansion).Exists() {
+	// Find the misplaced ones and move them
+	misplaced := b.State.CcForExp.Misplaced(b)
+	for tag, expansion := range misplaced {
+		unit := b.Units.ByTag[tag]
+		if unit == nil {
 			continue
 		}
 
-		// Skip locations that would be unsafe
-		if b.Enemies.Visible.Filter(scl.DpsGt5).CloserThan(sight.LineOfSightScannerSweep.Float64(), expansion).Exists() {
+		if filter.IsOrderedToAny(
+			ability.Lift, ability.Lift_CommandCenter, ability.Lift_OrbitalCommand,
+			ability.Land, ability.Land_CommandCenter, ability.Land_OrbitalCommand,
+		)(unit) {
 			continue
 		}
 
-		// If the expansion is not explored, then its mineral content shows up as
-		// empty. Let's just assume it's full.
-		hasMinerals := b.Units.Minerals.All().CloserThan(scl.ResourceSpreadDistance, expansion).Exists()
-		isExplored := b.Grid.IsExplored(expansion)
-		if isExplored && !hasMinerals {
+		if len(unit.Orders) > 0 {
+			unit.Command(ability.Cancel_Last)
 			continue
 		}
 
-		locations = append(locations, expansion)
+		if unit.Is(terran.CommandCenter) {
+			log.Info("Lifting Command Center from %s to expansion %s", unit.Point(), expansion)
+			unit.Command(ability.Lift_CommandCenter)
+		}
+
+		if unit.Is(terran.OrbitalCommand) {
+			log.Info("Lifting Orbital Command from %s to expansion %s", unit.Point(), expansion)
+			unit.Command(ability.Lift_OrbitalCommand)
+		}
+
+		if unit.Is(terran.CommandCenterFlying) {
+			log.Info("Flying Command Center from %s to expansion %s", unit.Point(), expansion)
+			unit.CommandPos(ability.Land_CommandCenter, expansion)
+		}
+
+		if unit.Is(terran.OrbitalCommandFlying) {
+			log.Info("Flying Orbital Command from %s to expansion %s", unit.Point(), expansion)
+			unit.CommandPos(ability.Land_OrbitalCommand, expansion)
+		}
+
 	}
-
-	return locations
-}
-
-// shouldExpand returns whether we should expand or not.
-//
-// The current strategy is as follows:
-//
-//   - Don't build if a Command Center is in progress
-//   - Don't build if there's more resource slots than miners + the amount of
-//     SCVs it takes to build a Command Center
-func shouldExpand(b *bot.Bot) bool {
-	if !b.CanBuy(ability.Build_CommandCenter) {
-		return false
-	}
-
-	ccOrdered := b.FindWorkers().Filter(filter.IsOrderedTo(ability.Build_CommandCenter)).Len() >= 1
-	if ccOrdered {
-		return false
-	}
-
-	ccInProgress := b.Units.My.OfType(terran.CommandCenter).Filter(filter.IsInProgress).Len() >= 1
-	if ccInProgress {
-		return false
-	}
-
-	miners := b.FindMiners()
-	if miners.Empty() {
-		return false
-	}
-
-	townHalls := b.FindTownHalls()
-	mineralFields := b.FindMineralFieldsNearTownHalls(townHalls)
-	claimedVespeneGeysers := b.FindClaimedVespeneGeysersNearTownHalls(townHalls)
-
-	scvDuringCc := bot.BuildDuring(bot.BuildTimeSCV, bot.BuildTimeCommandCenter)
-
-	mineralSlots := mineralFields.Len()*2 + claimedVespeneGeysers.Len()*3
-	vespeneGeyserSlots := claimedVespeneGeysers.Len() * 3
-	resourceSlots := mineralSlots + vespeneGeyserSlots
-
-	// Literally enough resources to saturate our workers and then some
-	if resourceSlots > miners.Len()+scvDuringCc {
-		return false
-	}
-
-	return true
 }
 
 // trainWorkers trains SCVs from command centers.
@@ -256,7 +146,7 @@ func shouldExpand(b *bot.Bot) bool {
 //   - Set the rally point to that resource
 //   - Train a SCV
 func trainWorkers(b *bot.Bot) {
-	if !b.CanBuy(ability.Train_SCV) || b.FindMiners().Len() >= MaxWorkers {
+	if !b.CanBuy(ability.Train_SCV) || b.FindMiners().Len() >= bot.MaxWorkers {
 		return
 	}
 
@@ -272,7 +162,10 @@ func trainWorkers(b *bot.Bot) {
 		return
 	}
 
-	idleTownHalls := townHalls.Filter(scl.Ready, scl.Idle, filter.IsCcAtExpansion(b.State.CcForExp))
+	idleTownHalls := townHalls.Filter(
+		scl.Ready, scl.Idle,
+		filter.IsCcAtExpansion(b.State.CcForExp),
+	)
 	if idleTownHalls.Empty() {
 		return
 	}
@@ -283,10 +176,12 @@ func trainWorkers(b *bot.Bot) {
 		}
 
 		// Ignore command centers that are reserved for morphing into an orbital
-		// command.
-		if b.State.CcForOrbitalCommand == cc.Tag {
+		// command or a planetary fortress.
+		if b.State.CcForOrbitalCommand == cc.Tag || b.State.CcForPlanetaryFortress == cc.Tag {
 			if cc.Is(terran.OrbitalCommand, terran.OrbitalCommandFlying) {
 				b.State.CcForOrbitalCommand = 0
+			} else if cc.Is(terran.PlanetaryFortress) {
+				b.State.CcForPlanetaryFortress = 0
 			} else {
 				continue
 			}

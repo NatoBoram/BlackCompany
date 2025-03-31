@@ -6,6 +6,7 @@ import (
 
 	"github.com/NatoBoram/BlackCompany/bot"
 	"github.com/NatoBoram/BlackCompany/log"
+	"github.com/NatoBoram/BlackCompany/macro"
 	"github.com/NatoBoram/BlackCompany/micro"
 	"github.com/aiseeq/s2l/lib/point"
 	"github.com/aiseeq/s2l/lib/scl"
@@ -60,7 +61,7 @@ func launch(env *Env) (*client.GameConfig, error) {
 
 // runAgent creates a bot and runs it.
 func runAgent(c *client.Client) {
-	bot := &bot.Bot{
+	b := &bot.Bot{
 		Bot: scl.New(c, bot.OnUnitCreated),
 		State: bot.BotState{
 			CcForExp:            make(map[api.UnitTag]point.Point),
@@ -69,30 +70,31 @@ func runAgent(c *client.Client) {
 		},
 	}
 
-	bot.FramesPerOrder = 16
-	bot.LastLoop = -math.MaxInt
+	b.FramesPerOrder = 16
+	b.LastLoop = -math.MaxInt
 
 	stop := make(chan struct{})
-	bot.Init(stop)
-	bot.InitState()
+	b.Init(stop)
+	b.InitState()
 
-	bot.Observe()
-	for bot.Client.Status == api.Status_in_game {
-		bot.Step()
-		micro.Step(bot)
+	b.Observe()
+	for b.Client.Status == api.Status_in_game {
+		b.Step()
+		macro.Macro(b, &macro.Standard)
+		micro.Step(b)
 
 		// Once a step is done, send it to the game
-		bot.Cmds.Process(&bot.Actions)
-		if len(bot.Actions) > 0 {
-			if _, err := bot.Client.Action(api.RequestAction{Actions: bot.Actions}); err != nil {
+		b.Cmds.Process(&b.Actions)
+		if len(b.Actions) > 0 {
+			if _, err := b.Client.Action(api.RequestAction{Actions: b.Actions}); err != nil {
 				log.Warn("Failed to send actions: %v", err)
 			}
 
-			bot.Actions = nil
+			b.Actions = nil
 		}
 
-		step := api.RequestStep{Count: uint32(bot.FramesPerOrder)}
-		if _, err := bot.Client.Step(step); err != nil {
+		step := api.RequestStep{Count: uint32(b.FramesPerOrder)}
+		if _, err := b.Client.Step(step); err != nil {
 			if err.Error() == "Not in a game" {
 				break
 			}
@@ -101,7 +103,7 @@ func runAgent(c *client.Client) {
 			break
 		}
 
-		bot.Observe()
+		b.Observe()
 	}
 
 	stop <- struct{}{}

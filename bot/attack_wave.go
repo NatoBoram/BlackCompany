@@ -12,22 +12,6 @@ type AttackWave struct {
 	Target point.Point
 }
 
-type AttackWaves []AttackWave
-
-func (a AttackWaves) Units(b *Bot) scl.Units {
-	count := 0
-	for _, wave := range a {
-		count += wave.Tags.Len()
-	}
-
-	units := make(scl.Units, 0, count)
-	for _, wave := range a {
-		units = append(units, wave.Units(b)...)
-	}
-
-	return units
-}
-
 // Units gets the units in an attack wave
 func (a *AttackWave) Units(b *Bot) scl.Units {
 	if b.Units.MyAll.Empty() {

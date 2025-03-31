@@ -1,6 +1,8 @@
-package filter
+package adapter
 
 import (
+	"maps"
+
 	"github.com/aiseeq/s2l/lib/point"
 	"github.com/aiseeq/s2l/lib/scl"
 )
@@ -26,7 +28,7 @@ func ToTags(unit scl.Units) scl.Tags {
 // ToKeys returns a slice containing all keys from the input map
 func ToKeys[K comparable, V any](m map[K]V) []K {
 	keys := make([]K, 0, len(m))
-	for k := range m {
+	for k := range maps.Keys(m) {
 		keys = append(keys, k)
 	}
 	return keys

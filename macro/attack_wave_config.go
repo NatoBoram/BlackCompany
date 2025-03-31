@@ -1,6 +1,7 @@
-package bot
+package macro
 
 import (
+	"github.com/NatoBoram/BlackCompany/bot"
 	"github.com/NatoBoram/BlackCompany/filter"
 	"github.com/NatoBoram/BlackCompany/log"
 	"github.com/aiseeq/s2l/lib/scl"
@@ -13,10 +14,10 @@ type AttackWaveConfig struct {
 	Name string
 
 	// Predicate determines if this attack wave should be launched or not
-	Predicate func(b *Bot) bool
+	Predicate func(b *bot.Bot) bool
 
 	// Execute attributes units to an attack wave
-	Execute func(b *Bot)
+	Execute func(b *bot.Bot)
 }
 
 // firstWaveConfig puts marines into a group for launching a marine rush timing
@@ -27,10 +28,10 @@ func firstWaveConfig() *AttackWaveConfig {
 
 	return &AttackWaveConfig{
 		Name: "First Attack Wave",
-		Predicate: func(b *Bot) bool {
+		Predicate: func(b *bot.Bot) bool {
 			return !launched
 		},
-		Execute: func(b *Bot) {
+		Execute: func(b *bot.Bot) {
 			if launched {
 				return
 			}
@@ -41,7 +42,7 @@ func firstWaveConfig() *AttackWaveConfig {
 				return
 			}
 
-			wave := AttackWave{
+			wave := bot.AttackWave{
 				Tags:   marines.Tags(),
 				Target: b.Locs.EnemyStart,
 			}
@@ -56,17 +57,17 @@ func firstWaveConfig() *AttackWaveConfig {
 func fullSupplyWaveConfig() *AttackWaveConfig {
 	return &AttackWaveConfig{
 		Name: "Full Supply Attack Wave",
-		Predicate: func(b *Bot) bool {
+		Predicate: func(b *bot.Bot) bool {
 			marines := b.Units.My.OfType(terran.Marine).Filter(scl.Ready, filter.NotIn(b.State.AttackWaves.Units(b)))
 			return b.Obs.PlayerCommon.FoodUsed >= b.Obs.PlayerCommon.FoodCap && marines.Len() >= 30
 		},
-		Execute: func(b *Bot) {
+		Execute: func(b *bot.Bot) {
 			marines := b.Units.My.OfType(terran.Marine).Filter(scl.Ready, filter.NotIn(b.State.AttackWaves.Units(b)))
 			if marines.Empty() {
 				return
 			}
 
-			wave := AttackWave{
+			wave := bot.AttackWave{
 				Tags:   marines.Tags(),
 				Target: marines.Center(),
 			}
