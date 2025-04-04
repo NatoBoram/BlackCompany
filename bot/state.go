@@ -2,6 +2,8 @@ package bot
 
 import (
 	"github.com/NatoBoram/BlackCompany/log"
+	"github.com/NatoBoram/BlackCompany/quote"
+	"github.com/NatoBoram/BlackCompany/wheel"
 	"github.com/aiseeq/s2l/lib/point"
 	"github.com/aiseeq/s2l/lib/scl"
 	"github.com/aiseeq/s2l/protocol/api"
@@ -25,6 +27,9 @@ type BotState struct {
 
 	// AttackWaves holds the groups of units that are used for attacking.
 	AttackWaves AttackWaves
+
+	// DetectedEnemyAirArmy saves whether the bot has seen any air units.
+	DetectedEnemyAirArmy bool
 }
 
 func (b *Bot) InitState() {
@@ -108,5 +113,20 @@ func (b *Bot) initCcForExp() {
 		if townHall.IsCloserThan(1, expansion) {
 			b.State.CcForExp[townHall.Tag] = expansion
 		}
+	}
+}
+
+func (b *Bot) detectEnemyAirArmy() {
+	if b.State.DetectedEnemyAirArmy {
+		return
+	}
+
+	army := b.FindEnemyAirArmy()
+	if army.Exists() {
+		log.Info("Detected enemy air army unit.")
+		b.State.DetectedEnemyAirArmy = true
+
+		message := wheel.RandomIn(quote.DetectedEnemyAirArmyQuotes)
+		b.Actions.ChatSend(message, api.ActionChat_Broadcast)
 	}
 }

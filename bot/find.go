@@ -167,3 +167,8 @@ func (b *Bot) FindEnemiesInBases() map[api.UnitTag]scl.Units {
 
 	return enemiesInBases
 }
+
+// FindEnemyAirArmy finds all enemy air units that are not workers.
+func (b *Bot) FindEnemyAirArmy() scl.Units {
+	return b.Units.Enemy.All().Filter(scl.DpsGt5, scl.Flying)
+}
