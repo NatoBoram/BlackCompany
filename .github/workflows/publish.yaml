@@ -24,7 +24,7 @@ jobs:
 
       - run: go build
 
-      - run: zip -9 -r "BlackCompany-$VERSION.zip" BlackCompany
+      - run: zip -9 "BlackCompany-$VERSION.zip" BlackCompany LICENSE.md README.md
         env:
           VERSION: ${{ github.ref_name }}
 

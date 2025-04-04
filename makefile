@@ -10,4 +10,9 @@ fast:
 	go run ./... -- -realtime false -windowwidth 1280 -windowheight 720
 
 clean:
-	rm -f BlackCompany BlackCompany.exe BlackCompany.zip vendor
+	rm -f BlackCompany BlackCompany-*.zip BlackCompany.exe BlackCompany.zip vendor
+
+zip:
+	make clean
+	go build
+	zip -9 "BlackCompany.zip" BlackCompany LICENSE.md README.md
