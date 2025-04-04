@@ -2,8 +2,9 @@
 .env.*.local
 
 BlackCompany
-BlackCompany.exe
 BlackCompany-*.zip
+BlackCompany.exe
+BlackCompany.zip
 
 vendor/
 
