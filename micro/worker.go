@@ -18,7 +18,7 @@ func handleWorkers(b *bot.Bot) {
 		return
 	}
 
-	log.Info("Sending %d workers back to work", idle.Len())
+	start := idle.Len()
 
 	mineralFields := b.FindUnsaturatedMineralFieldsNearTownHalls(townHalls)
 	if idle.Exists() && mineralFields.Exists() {
@@ -32,5 +32,11 @@ func handleWorkers(b *bot.Bot) {
 
 	if idle.Exists() && mineralFields.Exists() {
 		b.FillMineralsUpTo3(&idle, townHalls, mineralFields)
+	}
+
+	end := idle.Len()
+
+	if end != start {
+		log.Info("Sending %d workers back to work", start-end)
 	}
 }
