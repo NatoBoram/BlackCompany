@@ -134,3 +134,16 @@ func IsNotCcForExpansion(ccForExp map[api.UnitTag]point.Point) scl.Filter {
 		return !ok
 	}
 }
+
+// HasNoOrderedBuilder checks if no workers are ordered to build a structure on
+// this unit. Useful to pick up abandoned buildings.
+func HasNoOrderedBuilder(workers scl.Units, abilityId api.AbilityID) scl.Filter {
+	return func(target *scl.Unit) bool {
+		for _, worker := range workers {
+			if IsOrderedToTag(abilityId, target.Tag)(worker) {
+				return false
+			}
+		}
+		return true
+	}
+}
