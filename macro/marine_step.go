@@ -12,7 +12,9 @@ import (
 var marineStep = bot.BuildStep{
 	Name: "Train Marine",
 	Predicate: func(b *bot.Bot) bool {
-		return b.CanBuy(ability.Train_Marine)
+		// Waiting for the minerals to catch up with the supply slows down the
+		// army production to allow for the rest of the build order to execute.
+		return b.CanBuy(ability.Train_Marine) && b.Minerals > b.FoodUsed
 	},
 
 	Execute: func(b *bot.Bot) {
