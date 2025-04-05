@@ -82,13 +82,8 @@ func (b *Bot) ShouldExpand() bool {
 		return false
 	}
 
-	ccOrdered := b.FindWorkers().Filter(filter.IsOrderedTo(ability.Build_CommandCenter))
+	ccOrdered := b.FindWorkers().Filter(filter.IsOrderedToTag(ability.Build_CommandCenter, 0))
 	if ccOrdered.Exists() {
-		return false
-	}
-
-	ccInProgress := b.Units.My.OfType(terran.CommandCenter).Filter(filter.IsInProgress)
-	if ccInProgress.Exists() {
 		return false
 	}
 
