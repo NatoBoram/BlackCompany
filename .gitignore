@@ -1,12 +1,16 @@
-.env.local
-.env.*.local
-
+# Project
 BlackCompany
 BlackCompany-*.zip
 BlackCompany.exe
 BlackCompany.zip
 
+# Go
+__debug_bin*
 vendor/
+
+# Dotenv
+.env.*.local
+.env.local
 
 # Created by https://www.toptal.com/developers/gitignore/api/windows,linux,macos,go
 # Edit at https://www.toptal.com/developers/gitignore?templates=windows,linux,macos,go

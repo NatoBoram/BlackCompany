@@ -10,3 +10,9 @@ func IsNotAtAny(points point.Points) scl.Filter {
 		return points.CloserThan(1, u).Empty()
 	}
 }
+
+func NotInPoints(points point.Points) point.Filter {
+	return func(p point.Point) bool {
+		return points.CloserThan(1, p).Empty()
+	}
+}

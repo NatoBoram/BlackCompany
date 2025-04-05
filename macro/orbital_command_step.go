@@ -60,15 +60,33 @@ func orbitalCommandStep(quantity int) *bot.BuildStep {
 				return
 			}
 
-			// If it's ordered to do anything else, cancel it
-			ordered := filter.IsOrderedTo(ability.Morph_OrbitalCommand)(reserved)
-			if len(reserved.Orders) > 0 && !ordered {
-				reserved.Command(ability.Cancel_Last)
+			// If it's orderedToMorph to do anything else, cancel it
+			orderedToMorph := filter.IsOrderedTo(ability.Morph_OrbitalCommand)(reserved)
+			if len(reserved.Orders) > 0 && !orderedToMorph {
+				// TODO: Figure out which ability can cancel training SCVs.
+				if reserved.HasAbility(ability.Cancel) {
+					log.Debug("Using \"cancel\" on command center at %v", reserved.Point())
+					reserved.CommandQueue(ability.Cancel)
+				}
+				if reserved.HasAbility(ability.Cancel_Last) {
+					log.Debug("Using \"cancel last\" on command center at %v", reserved.Point())
+					reserved.CommandQueue(ability.Cancel_Last)
+				}
+				if reserved.HasAbility(ability.Cancel_Queue1) {
+					log.Debug("Using \"cancel queue 1\" on command center at %v", reserved.Point())
+					reserved.CommandQueue(ability.Cancel_Queue1)
+				}
+				if reserved.HasAbility(ability.Cancel_Queue5) {
+					log.Debug("Using \"cancel queue 5\" on command center at %v", reserved.Point())
+					reserved.CommandQueue(ability.Cancel_Queue5)
+				}
+
+				log.Debug("Cancelling order on command center at %v", reserved.Point())
 				return
 			}
 
 			// If it's not morphing yet, morph it
-			if !ordered {
+			if !orderedToMorph {
 				log.Info("Morphing orbital command at %v", reserved.Point())
 				reserved.Command(ability.Morph_OrbitalCommand)
 				b.DeductResources(ability.Morph_OrbitalCommand)

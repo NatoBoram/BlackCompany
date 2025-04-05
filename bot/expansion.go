@@ -57,23 +57,17 @@ func (b *Bot) FindExpansionLocations() point.Points {
 	return locations
 }
 
-// FindUnassignedCommandCenters finds command centers that are not at an
-// expansion location that we can use to expand by lifting them.
-func (b *Bot) FindUnassignedCommandCenters() scl.Units {
-	expansions := append(b.Locs.MyExps, b.Locs.MyStart)
-
+// findUnassignedCommandCenters finds command centers that are not assigned to
+// an expansion in the state.
+func (b *Bot) findUnassignedCommandCenters() scl.Units {
 	return b.Units.My.
 		OfType(
 			terran.CommandCenter, terran.OrbitalCommand,
 			terran.CommandCenterFlying, terran.OrbitalCommandFlying,
+			terran.PlanetaryFortress,
 		).
 		Filter(
-			filter.IsNotAtAny(expansions),
 			filter.IsNotCcForExpansion(b.State.CcForExp),
-			filter.IsNotOrderedToAny(
-				ability.Lift, ability.Lift_CommandCenter, ability.Lift_OrbitalCommand,
-				ability.Land, ability.Land_CommandCenter, ability.Land_OrbitalCommand,
-			),
 		)
 }
 
@@ -88,13 +82,8 @@ func (b *Bot) ShouldExpand() bool {
 		return false
 	}
 
-	ccOrdered := b.FindWorkers().Filter(filter.IsOrderedTo(ability.Build_CommandCenter))
+	ccOrdered := b.FindWorkers().Filter(filter.IsOrderedToTag(ability.Build_CommandCenter, 0))
 	if ccOrdered.Exists() {
-		return false
-	}
-
-	ccInProgress := b.Units.My.OfType(terran.CommandCenter).Filter(filter.IsInProgress)
-	if ccInProgress.Exists() {
 		return false
 	}
 
@@ -159,40 +148,42 @@ func (b *Bot) flyTime(origin point.Pointer, unit api.UnitTypeID, destination poi
 // AssignCCToExpansion finds all unassigned command centers and assigns them to
 // one.
 func (b *Bot) AssignCCToExpansion() {
-	unassigned := b.FindUnassignedCommandCenters()
+	unassigned := b.findUnassignedCommandCenters()
 	if unassigned.Empty() {
 		return
 	}
 
-	// If they're already at an expansion, then just assign them that expansion.
 	expansions := append(b.Locs.MyExps, b.Locs.MyStart)
 	if expansions.Empty() {
 		return
 	}
 
-	assigned := make(scl.Units, 0, len(unassigned))
+	// If they're already at an expansion, then just assign them that expansion.
+	newlyAssigned := make(scl.Units, 0, len(unassigned))
 	for _, cc := range unassigned {
 		closest := expansions.ClosestTo(cc)
 		if closest.IsCloserThan(1, cc) {
-			b.State.CcForExp[cc.Tag] = closest
-			assigned = append(assigned, cc)
+			b.State.CcForExp.Reserve(b, cc, closest)
+			newlyAssigned = append(newlyAssigned, cc)
 			continue
 		}
 	}
 
-	unassigned = unassigned.Filter(filter.NotIn(assigned))
-	expansions = b.FindExpansionLocations()
-	if expansions.Empty() {
+	unassigned = unassigned.Filter(filter.NotIn(newlyAssigned))
+	free := b.FindExpansionLocations()
+	if free.Empty() || unassigned.Empty() {
 		return
 	}
 
 	for i, cc := range unassigned {
-		if i >= len(expansions) {
+		if i >= len(free) {
 			break
 		}
 
-		expansion := expansions[i]
-		log.Debug("Assigning a town hall to expansion %s", expansion)
-		b.State.CcForExp[cc.Tag] = expansion
+		closest := free.ClosestTo(cc)
+		b.State.CcForExp.Reserve(b, cc, closest)
+		free.Remove(closest)
+
+		log.Debug("Assigning town hall %s to expansion %s", cc.Point(), closest)
 	}
 }

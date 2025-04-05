@@ -5,10 +5,12 @@ import (
 	"os/exec"
 	"path"
 	"strconv"
+	"strings"
 
 	"github.com/NatoBoram/BlackCompany/log"
 	"github.com/aiseeq/s2l/protocol/api"
 	"github.com/aiseeq/s2l/protocol/client"
+	"github.com/shirou/gopsutil/v4/process"
 )
 
 // launchProton launches StarCraft II using Proton.
@@ -50,9 +52,19 @@ func launchProton(paths *Sc2Paths, flags Flags) error {
 	}
 
 	cmd := exec.Command(paths.Proton, args...)
-
 	cmd.Dir = path.Join(paths.Sc2, "Support64")
 
+	running, err := runningProton()
+	if err != nil {
+		return fmt.Errorf("failed to check if Proton is running: %w", err)
+	}
+
+	if running != nil {
+		log.Info("Proton is already running")
+		return nil
+	}
+
+	log.Info("Launching StarCraft II using Proton")
 	go func() {
 		if err := cmd.Run(); err != nil {
 			log.Fatal("failed to run StarCraft II: %v", err)
@@ -60,6 +72,26 @@ func launchProton(paths *Sc2Paths, flags Flags) error {
 	}()
 
 	return nil
+}
+
+func runningProton() (*process.Process, error) {
+	processes, err := process.Processes()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get processes: %w", err)
+	}
+
+	for _, p := range processes {
+		exe, err := p.Exe()
+		if err != nil {
+			continue
+		}
+
+		if strings.HasSuffix(exe, "/files/bin/wineserver") {
+			return p, nil
+		}
+	}
+
+	return nil, nil
 }
 
 func protonConfig(bot *api.PlayerSetup, participants ...*api.PlayerSetup) *client.GameConfig {

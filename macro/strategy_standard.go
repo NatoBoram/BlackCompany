@@ -47,6 +47,7 @@ var Standard = bot.Strategy{
 		expandStep(0),
 		refineryStep(0),
 		&planetaryFortressStep,
+		&turretStep,
 
 		// These are just in the meantime
 		buildingStep("Armory", terran.Armory, ability.Build_Armory, 1, terran.Factory),

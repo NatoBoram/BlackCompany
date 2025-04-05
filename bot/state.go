@@ -2,8 +2,9 @@ package bot
 
 import (
 	"github.com/NatoBoram/BlackCompany/log"
+	"github.com/NatoBoram/BlackCompany/quote"
+	"github.com/NatoBoram/BlackCompany/wheel"
 	"github.com/aiseeq/s2l/lib/point"
-	"github.com/aiseeq/s2l/lib/scl"
 	"github.com/aiseeq/s2l/protocol/api"
 )
 
@@ -25,70 +26,13 @@ type BotState struct {
 
 	// AttackWaves holds the groups of units that are used for attacking.
 	AttackWaves AttackWaves
+
+	// DetectedEnemyAirArmy saves whether the bot has seen any air units.
+	DetectedEnemyAirArmy bool
 }
 
 func (b *Bot) InitState() {
 	b.initCcForExp()
-}
-
-type CcForExp map[api.UnitTag]point.Point
-
-func (m *CcForExp) Misplaced(b *Bot) CcForExp {
-	misplaced := make(CcForExp)
-	for tag, point := range *m {
-		unit := b.Units.ByTag[tag]
-		if unit == nil {
-			delete(*m, tag)
-			continue
-		}
-
-		if unit.IsFurtherThan(1, point) {
-			misplaced[tag] = point
-		}
-	}
-
-	return misplaced
-}
-
-func (m *CcForExp) DeleteTag(tag api.UnitTag) {
-	delete(*m, tag)
-}
-
-func (m *CcForExp) IsReserved(b *Bot, expansion point.Point) bool {
-	for tag, point := range *m {
-		unit := b.Units.ByTag[tag]
-		if unit == nil {
-			delete(*m, tag)
-			continue
-		}
-
-		if point.IsCloserThan(1, expansion) {
-			return true
-		}
-	}
-
-	return false
-}
-
-// ByExpansion returns the town halls that are reserved for a specific
-// expansion.
-func (m *CcForExp) ByExpansion(b *Bot, expansion point.Point) scl.Units {
-	cc := make(scl.Units, 0, len(*m))
-	for tag, exp := range *m {
-		if exp.IsFurtherThan(1, expansion) {
-			continue
-		}
-
-		// Dead command centers can be removed from the state
-		unit := b.Units.ByTag[tag]
-		if unit == nil {
-			delete(*m, tag)
-			continue
-		}
-
-		cc = append(cc, unit)
-	}
-	return cc
 }
 
 func (b *Bot) initCcForExp() {
@@ -108,5 +52,20 @@ func (b *Bot) initCcForExp() {
 		if townHall.IsCloserThan(1, expansion) {
 			b.State.CcForExp[townHall.Tag] = expansion
 		}
+	}
+}
+
+func (b *Bot) detectEnemyAirArmy() {
+	if b.State.DetectedEnemyAirArmy {
+		return
+	}
+
+	army := b.FindEnemyAirArmy()
+	if army.Exists() {
+		log.Info("Detected enemy air army unit.")
+		b.State.DetectedEnemyAirArmy = true
+
+		message := wheel.RandomIn(quote.DetectedEnemyAirArmyQuotes)
+		b.Actions.ChatSend(message, api.ActionChat_Broadcast)
 	}
 }

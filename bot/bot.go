@@ -82,4 +82,6 @@ func (b *Bot) ParseData() {
 	}
 
 	b.FindClusters() // Not used yet
+
+	b.detectEnemyAirArmy()
 }

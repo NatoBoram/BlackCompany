@@ -13,4 +13,5 @@ func Step(b *bot.Bot) {
 	handleAttackWaves(b)
 	handleTownHalls(b)
 	handleWorkers(b)
+	handleMarines(b)
 }
