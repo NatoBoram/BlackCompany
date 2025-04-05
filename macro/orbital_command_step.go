@@ -63,7 +63,8 @@ func orbitalCommandStep(quantity int) *bot.BuildStep {
 			// If it's ordered to do anything else, cancel it
 			ordered := filter.IsOrderedTo(ability.Morph_OrbitalCommand)(reserved)
 			if len(reserved.Orders) > 0 && !ordered {
-				reserved.Command(ability.Cancel_Last)
+				reserved.Command(ability.Cancel)
+				log.Debug("Cancelling order on command center at %v", reserved.Point())
 				return
 			}
 
