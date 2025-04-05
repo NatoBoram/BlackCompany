@@ -10,7 +10,7 @@ fast:
 	go run ./... -- -realtime false -windowwidth 1280 -windowheight 720
 
 clean:
-	rm -f BlackCompany BlackCompany-*.zip BlackCompany.exe BlackCompany.zip vendor
+	rm -f __debug_bin* BlackCompany BlackCompany-*.zip BlackCompany.exe BlackCompany.zip vendor
 
 zip:
 	make clean
