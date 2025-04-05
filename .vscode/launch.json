@@ -1,0 +1,41 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		// Go Debugging:
+		// https://github.com/golang/vscode-go/wiki/debugging
+
+		{
+			"name": "Slow",
+			"type": "go",
+			"request": "launch",
+			"program": "${workspaceFolder}",
+
+			"args": [
+				"-realtime",
+				"true",
+				"-windowwidth",
+				"1920",
+				"-windowheight",
+				"1080"
+			],
+			"console": "integratedTerminal"
+		},
+
+		{
+			"name": "Fast",
+			"type": "go",
+			"request": "launch",
+			"program": "${workspaceFolder}",
+
+			"args": [
+				"-realtime",
+				"false",
+				"-windowwidth",
+				"1280",
+				"-windowheight",
+				"720"
+			],
+			"console": "integratedTerminal"
+		}
+	]
+}
