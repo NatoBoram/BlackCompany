@@ -110,7 +110,7 @@ func flyToExpansion(b *bot.Bot) {
 //   - Set the rally point to that resource
 //   - Train a SCV
 func trainWorkers(b *bot.Bot) {
-	if !b.CanBuy(ability.Train_SCV) || b.FindMiners().Len() >= bot.MaxWorkers {
+	if !b.CanBuy(ability.Train_SCV) {
 		return
 	}
 
@@ -118,6 +118,12 @@ func trainWorkers(b *bot.Bot) {
 		terran.CommandCenter, terran.OrbitalCommand, terran.PlanetaryFortress,
 	)
 	if townHalls.Empty() {
+		return
+	}
+
+	workers := b.FindWorkers()
+	inProgress := townHalls.Filter(filter.IsOrderedToAny(ability.Train_SCV, ability.Train_Probe, ability.Train_Drone))
+	if workers.Len()+inProgress.Len() >= bot.MaxWorkers {
 		return
 	}
 
