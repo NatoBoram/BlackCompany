@@ -67,7 +67,7 @@ func flyToExpansion(b *bot.Bot) {
 	flying := b.Units.My.OfType(
 		terran.CommandCenterFlying, terran.OrbitalCommandFlying,
 	).Filter(
-		filter.IsOrderedToAny(
+		filter.IsNotOrderedToAny(
 			ability.Lift, ability.Lift_CommandCenter, ability.Lift_OrbitalCommand,
 			ability.Land, ability.Land_CommandCenter, ability.Land_OrbitalCommand,
 		),
