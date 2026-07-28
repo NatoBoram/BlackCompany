@@ -15,7 +15,7 @@ import (
 //
 // TODO: Check if there's enough space for the reactor, and if not, fly the
 // building somewhere safe.
-func addonStep(name string, buildingId api.UnitTypeID, addonId api.UnitTypeID, abilityId api.AbilityID, quantity int) *bot.BuildStep {
+func addonStep(name string, buildingId, addonId api.UnitTypeID, abilityId api.AbilityID, quantity int) *bot.BuildStep {
 	return &bot.BuildStep{
 		Name: stepName(name, quantity),
 		Predicate: func(b *bot.Bot) bool {

@@ -97,7 +97,7 @@ func flagInt(flags map[string]string, name string, fallback int) int {
 }
 
 // flagString gets a string flag value from the provided flag map
-func flagString(flags map[string]string, name string, fallback string) string {
+func flagString(flags map[string]string, name, fallback string) string {
 	if value, ok := flags[name]; ok {
 		return value
 	}
@@ -143,7 +143,7 @@ func ParseFlags() map[string]string {
 //   - the flag value
 //
 // Returns empty strings for name and value if the argument is not a flag
-func ParseArg(args []string, index int) (advance int, name string, value string) {
+func ParseArg(args []string, index int) (advance int, name, value string) {
 	if index >= len(args) {
 		return 0, "", ""
 	}

@@ -187,7 +187,7 @@ func (b *Bot) areSizesTouching(pos1 point.Point, size1 scl.BuildingSize, pos2 po
 }
 
 // areBuildingsTouching checks if two buildings are touching
-func (b *Bot) areBuildingsTouching(building1 *scl.Unit, building2 *scl.Unit) bool {
+func (b *Bot) areBuildingsTouching(building1, building2 *scl.Unit) bool {
 	pos1 := building1.Point().Floor()
 	size1 := buildingToSize(building1)
 
