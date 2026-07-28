@@ -7,6 +7,8 @@
 
 BlackCompany is a StarCraft II bot written in Go.
 
+![Screenshot of a command center flying to an expansion.](https://github.com/user-attachments/assets/d932947b-596c-49e6-aa15-3f8b25dfe44c)
+
 ## Dependencies
 
 This bot is developed on Linux.
